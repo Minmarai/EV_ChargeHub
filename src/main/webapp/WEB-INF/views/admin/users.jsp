@@ -1,8 +1,10 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%-- Author: Minma Rai --%>
 <html>
 <head>
   <title>User Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
 </head>
 <body class="admin-dashboard-page">
@@ -17,8 +19,6 @@
         <span>ChargeHub Nepal Admin module</span>
       </div>
       <div class="admin-topbar-actions">
-        <label class="admin-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search records..."></label>
-        <i class="fa-regular fa-bell"></i>
         <div class="admin-user-chip">
           <div>
             <strong>Admin User</strong>
@@ -41,29 +41,29 @@
 
     <section class="admin-users-filters">
       <form method="get" action="${pageContext.request.contextPath}/admin/users" class="admin-users-filter-form">
+        <input type="hidden" name="pageSize" value="${pageSize}">
         <div class="admin-users-search-wrap">
           <i class="fa-solid fa-magnifying-glass"></i>
           <input type="text" name="q" value="${q}" placeholder="Search by name, email, or user ID...">
         </div>
         <div class="admin-users-filter-select">
-          <i class="fa-solid fa-filter"></i>
           <select name="role">
-            <option value="">Filter: Role</option>
+            <option value="">Role</option>
             <option value="user" ${role == 'user' ? 'selected' : ''}>Customer</option>
-            <option value="staff" ${role == 'staff' ? 'selected' : ''}>Staff</option>
+            <option value="station_manager" ${role == 'station_manager' ? 'selected' : ''}>Station Manager</option>
             <option value="admin" ${role == 'admin' ? 'selected' : ''}>Admin</option>
           </select>
         </div>
         <div class="admin-users-filter-select">
-          <i class="fa-solid fa-filter"></i>
           <select name="status">
-            <option value="">Filter: Status</option>
+            <option value="">Status</option>
             <option value="active" ${status == 'active' ? 'selected' : ''}>Active</option>
             <option value="pending" ${status == 'pending' ? 'selected' : ''}>Pending</option>
             <option value="suspended" ${status == 'suspended' ? 'selected' : ''}>Suspended</option>
             <option value="deactivated" ${status == 'deactivated' ? 'selected' : ''}>Deactivated</option>
           </select>
         </div>
+        <button type="submit" class="admin-apply-btn">Apply</button>
         <button class="admin-reset-link" name="reset" value="1">Reset Filters</button>
       </form>
     </section>
@@ -92,8 +92,8 @@
               <small>${u.phone}</small>
             </td>
             <td>
-              <span class="admin-user-role ${u.role == 'staff' ? 'staff' : (u.role == 'admin' ? 'admin' : 'customer')}">
-                  ${u.role == 'staff' ? 'Staff' : (u.role == 'admin' ? 'Admin' : 'Customer')}
+              <span class="admin-user-role ${u.role == 'station_manager' ? 'manager' : (u.role == 'admin' ? 'admin' : 'customer')}">
+                  ${u.role == 'station_manager' ? 'Station Manager' : (u.role == 'admin' ? 'Admin' : 'Customer')}
               </span>
             </td>
             <td>
@@ -101,18 +101,6 @@
             </td>
             <td>
               <div class="admin-user-actions">
-                <form method="post">
-                  <input type="hidden" name="action" value="userStatus">
-                  <input type="hidden" name="userId" value="${u.userId}">
-                  <input type="hidden" name="status" value="Active">
-                  <button type="submit" class="icon-btn approve" title="Approve"><i class="fa-solid fa-check"></i></button>
-                </form>
-                <form method="post">
-                  <input type="hidden" name="action" value="userStatus">
-                  <input type="hidden" name="userId" value="${u.userId}">
-                  <input type="hidden" name="status" value="Deactivated">
-                  <button type="submit" class="icon-btn deactivate" title="Deactivate"><i class="fa-solid fa-ban"></i></button>
-                </form>
                 <a class="icon-btn edit" title="Edit" href="${pageContext.request.contextPath}/admin/user-form?id=${u.userId}"><i class="fa-regular fa-pen-to-square"></i></a>
                 <form method="post">
                   <input type="hidden" name="action" value="deleteUser">
@@ -131,13 +119,36 @@
         </tbody>
       </table>
       <div class="admin-users-footer">
-        <span>Showing 1-${usersCount} of ${usersCount} users</span>
+        <span>Showing ${usersFrom}-${usersTo} of ${usersTotalCount} users</span>
         <div class="admin-users-pager">
-          <button type="button" disabled><i class="fa-solid fa-chevron-left"></i> Prev</button>
-          <button type="button" class="active">1</button>
-          <button type="button">2</button>
-          <button type="button">3</button>
-          <button type="button">Next <i class="fa-solid fa-chevron-right"></i></button>
+          <form method="get" action="${pageContext.request.contextPath}/admin/users" style="display:inline">
+            <input type="hidden" name="q" value="${q}">
+            <input type="hidden" name="role" value="${role}">
+            <input type="hidden" name="status" value="${status}">
+            <input type="hidden" name="pageSize" value="${pageSize}">
+            <input type="hidden" name="page" value="${page - 1}">
+            <button type="submit" ${page <= 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i> Prev</button>
+          </form>
+
+          <c:forEach begin="1" end="${totalPages}" var="pNum">
+            <form method="get" action="${pageContext.request.contextPath}/admin/users" style="display:inline">
+              <input type="hidden" name="q" value="${q}">
+              <input type="hidden" name="role" value="${role}">
+              <input type="hidden" name="status" value="${status}">
+              <input type="hidden" name="pageSize" value="${pageSize}">
+              <input type="hidden" name="page" value="${pNum}">
+              <button type="submit" class="${pNum == page ? 'active' : ''}">${pNum}</button>
+            </form>
+          </c:forEach>
+
+          <form method="get" action="${pageContext.request.contextPath}/admin/users" style="display:inline">
+            <input type="hidden" name="q" value="${q}">
+            <input type="hidden" name="role" value="${role}">
+            <input type="hidden" name="status" value="${status}">
+            <input type="hidden" name="pageSize" value="${pageSize}">
+            <input type="hidden" name="page" value="${page + 1}">
+            <button type="submit" ${page >= totalPages ? 'disabled' : ''}>Next <i class="fa-solid fa-chevron-right"></i></button>
+          </form>
         </div>
       </div>
     </section>

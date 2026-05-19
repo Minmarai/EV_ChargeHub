@@ -3,6 +3,9 @@ package com.chargehub.filter;
 import jakarta.servlet.*;import jakarta.servlet.annotation.WebFilter;import jakarta.servlet.http.*;import java.io.IOException;
 
 @WebFilter({"/user/*","/station-manager/*","/admin/*"})
+/**
+ * Author: Minma Rai
+ */
 public class AuthFilter implements Filter {
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
         HttpServletRequest request=(HttpServletRequest)req; HttpServletResponse response=(HttpServletResponse)res;

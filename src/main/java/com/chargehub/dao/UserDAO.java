@@ -17,6 +17,8 @@ import java.util.*;
  *
  * <p>All database connections are obtained via {@link DBConnection#getConnection()}
  * and are closed automatically using try-with-resources.</p>
+ *
+ * <p>Author: Minma Rai</p>
  */
 public class UserDAO {
 
@@ -309,6 +311,71 @@ public class UserDAO {
     }
 
     /**
+     * Updates self-editable profile fields including the email address.
+     *
+     * <p>This is an extended variant of {@link #updateProfile(User)} that also
+     * permits the email address to be changed. Use this only in flows where
+     * email modification has been explicitly permitted and validated — for example,
+     * after a successful email-verification step — since email is otherwise
+     * treated as a non-user-modifiable field.</p>
+     *
+     * <p>Fields updated: {@code full_name}, {@code email}, {@code phone},
+     * {@code vehicle_number}, {@code address}.</p>
+     *
+     * <p>Fields intentionally excluded: {@code role}, {@code status},
+     * {@code password_hash}.</p>
+     *
+     * @param u the {@link User} object containing the updated profile fields
+     *          including the new email address, and a valid user ID
+     * @return {@code true} if the update affected at least one row; {@code false} otherwise
+     */
+    public boolean updateProfileWithEmail(User u) {
+        String sql = "UPDATE users SET full_name=?, email=?, phone=?, vehicle_number=?, address=? " +
+                "WHERE user_id=?";
+        try (Connection c = DBConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, u.getFullName());
+            ps.setString(2, u.getEmail());
+            ps.setString(3, u.getPhone());
+            ps.setString(4, u.getVehicleNumber());
+            ps.setString(5, u.getAddress());
+            ps.setInt(6, u.getUserId());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Updates only the password hash for a specific user.
+     *
+     * <p>Use this method for standalone password change or reset flows where
+     * no other user fields need to be modified. For a combined profile-and-password
+     * update in a single operation, use {@link #updateWithPassword(User)} instead.</p>
+     *
+     * <p><strong>Note:</strong> The caller is responsible for ensuring that
+     * {@code passwordHash} contains a properly hashed value before invoking
+     * this method. Plain text passwords must never be passed here.</p>
+     *
+     * @param userId       the unique ID of the user whose password hash is to be updated
+     * @param passwordHash the new hashed password to persist; must not be plain text
+     * @return {@code true} if the update affected at least one row; {@code false} otherwise
+     */
+    public boolean updatePasswordHash(int userId, String passwordHash) {
+        try (Connection c = DBConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "UPDATE users SET password_hash=? WHERE user_id=?")) {
+            ps.setString(1, passwordHash);
+            ps.setInt(2, userId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
      * Updates only the account status of a specific user.
      *
      * <p>Common status values include {@code "active"} and {@code "inactive"}.
@@ -375,6 +442,31 @@ public class UserDAO {
         try (Connection c = DBConnection.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             if (role != null) ps.setString(1, role);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /**
+     * Returns the count of active EV owner accounts.
+     *
+     * <p>Counts only users whose {@code role} is {@code "user"} and whose
+     * {@code status} is {@code "active"}, using case-insensitive, whitespace-trimmed
+     * comparisons to guard against minor data inconsistencies stored in the database.</p>
+     *
+     * <p>This is a narrower alternative to {@link #countByRole(String)} — it combines
+     * both a role filter and a status filter in a single query, making it suitable
+     * for dashboard metrics that need to reflect only currently active EV owners.</p>
+     *
+     * @return the number of active EV owner accounts; {@code 0} on error or if none found
+     */
+    public int countActiveEvOwners() {
+        String sql = "SELECT COUNT(*) FROM users WHERE LOWER(TRIM(role))='user' AND LOWER(TRIM(status))='active'";
+        try (Connection c = DBConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return rs.getInt(1);
         } catch (SQLException e) {

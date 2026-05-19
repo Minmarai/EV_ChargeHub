@@ -1,5 +1,9 @@
 package com.chargehub.model;
 import java.sql.Date; import java.sql.Time;
+
+/**
+ * Author: Imtiyaz Ansari
+ */
 public class Slot {
     private int slotId, stationId; private String stationName, availabilityStatus; private Date slotDate; private Time startTime,endTime;
     public int getSlotId(){return slotId;} public void setSlotId(int slotId){this.slotId=slotId;}

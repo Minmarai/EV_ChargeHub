@@ -1,6 +1,5 @@
 package com.chargehub.dao;
 
-import com.chargehub.model.Slot;
 import com.chargehub.util.DBConnection;
 import java.sql.*;
 import java.util.*;
@@ -16,6 +15,8 @@ import java.util.*;
  *
  * <p>All database connections are obtained via {@link DBConnection#getConnection()}
  * and are closed automatically using try-with-resources.</p>
+ *
+ * <p>Author: Imtiyaz Ansari</p>
  */
 public class SlotDAO {
 
@@ -84,7 +85,7 @@ public class SlotDAO {
   */
  public List<Slot> findAvailableByStation(int stationId) {
   return query(base + " WHERE sl.station_id=" + stationId +
-          " AND sl.availability_status='available' ORDER BY sl.slot_date, sl.start_time");
+          " AND LOWER(TRIM(sl.availability_status))='available' AND sl.slot_date>=CURDATE() ORDER BY sl.slot_date, sl.start_time");
  }
 
  /**
@@ -264,6 +265,68 @@ public class SlotDAO {
                        "JOIN stations st ON sl.station_id = st.station_id " +
                        "WHERE st.manager_id=?")) {
    ps.setInt(1, managerId);
+   ResultSet rs = ps.executeQuery();
+   if (rs.next()) return rs.getInt(1);
+  } catch (SQLException e) {
+   e.printStackTrace();
+  }
+  return 0;
+ }
+
+ /**
+  * Returns the number of slots with {@code "available"} status for a specific station
+  * from today onward.
+  *
+  * <p>Only future or current-day slots are counted ({@code slot_date >= CURDATE()}),
+  * making this suitable for dashboard indicators or booking availability checks
+  * where past slots are irrelevant.</p>
+  *
+  * <p>Complements {@link #countBookedPortsByStation(int)}, which counts slots
+  * in the opposing {@code "booked"} state for the same station and date range.</p>
+  *
+  * @param stationId the ID of the station to count available slots for
+  * @return the number of available upcoming slots for the station,
+  *         or {@code 0} if none exist or an error occurs
+  */
+ public int countAvailablePortsByStation(int stationId) {
+  String sql = "SELECT COUNT(*) FROM slots WHERE station_id = ? " +
+          "AND availability_status = 'available' AND slot_date >= CURDATE()";
+  try (Connection c = DBConnection.getConnection();
+       PreparedStatement ps = c.prepareStatement(sql)) {
+   ps.setInt(1, stationId);
+   ResultSet rs = ps.executeQuery();
+   if (rs.next()) return rs.getInt(1);
+  } catch (SQLException e) {
+   e.printStackTrace();
+  }
+  return 0;
+ }
+
+ /**
+  * Returns the number of slots with {@code "booked"} status for a specific station
+  * from today onward.
+  *
+  * <p>Only future or current-day slots are counted ({@code slot_date >= CURDATE()}),
+  * making this suitable for occupancy metrics or capacity planning dashboards
+  * where historical bookings are not relevant.</p>
+  *
+  * <p>Status comparison uses {@code LOWER(TRIM(...))} to tolerate minor
+  * inconsistencies in stored values (e.g., leading/trailing whitespace or
+  * mixed casing such as {@code "Booked"} or {@code " booked "}).</p>
+  *
+  * <p>Complements {@link #countAvailablePortsByStation(int)}, which counts slots
+  * in the opposing {@code "available"} state for the same station and date range.</p>
+  *
+  * @param stationId the ID of the station to count booked slots for
+  * @return the number of booked upcoming slots for the station,
+  *         or {@code 0} if none exist or an error occurs
+  */
+ public int countBookedPortsByStation(int stationId) {
+  String sql = "SELECT COUNT(*) FROM slots WHERE station_id = ? " +
+          "AND LOWER(TRIM(availability_status)) = 'booked' AND slot_date >= CURDATE()";
+  try (Connection c = DBConnection.getConnection();
+       PreparedStatement ps = c.prepareStatement(sql)) {
+   ps.setInt(1, stationId);
    ResultSet rs = ps.executeQuery();
    if (rs.next()) return rs.getInt(1);
   } catch (SQLException e) {

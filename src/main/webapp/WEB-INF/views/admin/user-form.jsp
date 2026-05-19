@@ -1,14 +1,17 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%-- Author: Minma Rai --%>
 <html>
 <head>
     <title>Edit User Profile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
 </head>
 <body class="admin-dashboard-page">
 <div class="admin-shell">
     <jsp:include page="../common/admin-sidebar.jsp"/>
+    <c:set var="resolvedUserId" value="${not empty user.userId ? user.userId : param.id}"/>
 
     <main class="admin-content">
         <section class="admin-topbar">
@@ -19,7 +22,6 @@
             </div>
             <div class="admin-topbar-actions">
                 <label class="admin-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search records..."></label>
-                <i class="fa-regular fa-bell"></i>
                 <div class="admin-user-chip">
                     <div>
                         <strong>Admin User</strong>
@@ -34,7 +36,7 @@
             <div class="admin-edit-user-title">
                 <a class="admin-back-btn" href="${pageContext.request.contextPath}/admin/users"><i class="fa-solid fa-arrow-left"></i></a>
                 <div>
-                    <h1>Edit User #CH-${user.userId}</h1>
+                    <h1>Edit User #CH-${empty resolvedUserId ? '--' : resolvedUserId}</h1>
                     <p>Modify user credentials and account permissions.</p>
                 </div>
             </div>
@@ -47,7 +49,7 @@
         <section class="admin-edit-user-grid">
             <form id="editUserForm" class="admin-edit-user-main-card" method="post" action="${pageContext.request.contextPath}/admin">
                 <input type="hidden" name="action" value="saveUser">
-                <input type="hidden" name="userId" value="${user.userId}">
+                <input type="hidden" name="userId" value="${resolvedUserId}">
                 <input type="hidden" name="vehicleNumber" value="${user.vehicleNumber}">
                 <h2>Account Information</h2>
                 <p>Essential details for identifying the user and contacting them.</p>
@@ -78,7 +80,7 @@
                     <div class="admin-edit-user-two-col">
                         <label>
                             Account Role
-                            <span class="admin-edit-input no-icon">
+                            <span class="admin-edit-input no-icon admin-user-role-field">
                 <select name="role">
                   <option value="user" ${user.role == 'user' ? 'selected' : ''}>Customer</option>
                   <option value="staff" ${user.role == 'staff' ? 'selected' : ''}>Staff</option>
@@ -106,7 +108,7 @@
                     <h3>Location Information</h3>
                     <label>
                         Full Address
-                        <span class="admin-edit-input"><i class="fa-solid fa-location-dot"></i><textarea name="address" rows="4" required>${user.address}</textarea></span>
+                        <span class="admin-edit-input no-icon admin-user-address-field"><textarea name="address" rows="3" required>${user.address}</textarea></span>
                     </label>
                 </div>
             </form>
@@ -122,15 +124,8 @@
                     <p>${user.email}</p>
                     <div class="chips">
                         <span class="role">${user.role == 'user' ? 'customer' : user.role}</span>
-                        <span class="id">ID: CH-${user.userId}</span>
+                        <span class="id">ID: CH-${empty resolvedUserId ? '--' : resolvedUserId}</span>
                     </div>
-                </article>
-
-                <article class="admin-side-card">
-                    <h4>User Statistics</h4>
-                    <div class="row"><span><i class="fa-regular fa-calendar"></i> Joined On</span><b>Oct 12, 2022</b></div>
-                    <div class="row"><span><i class="fa-regular fa-bookmark"></i> Total Bookings</span><b>42</b></div>
-                    <div class="row"><span><i class="fa-regular fa-clock"></i> Last Active</span><b>2 hours ago</b></div>
                 </article>
             </aside>
         </section>
