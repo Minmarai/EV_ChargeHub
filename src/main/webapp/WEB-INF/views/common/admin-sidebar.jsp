@@ -1,6 +1,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
-<aside class="admin-sidebar">
+<%-- Author: Rijam Shrestha --%>
+<aside id="admin-sidebar-nav" class="admin-sidebar">
   <div class="admin-brand">
     <span class="admin-brand-icon"><i class="fa-solid fa-bolt"></i></span>
     <span>ChargeHub</span>
@@ -24,3 +25,47 @@
     <a class="logout" href="${pageContext.request.contextPath}/logout"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
   </div>
 </aside>
+
+<button type="button" class="mobile-nav-toggle admin-mobile-toggle" aria-label="Toggle navigation" aria-controls="admin-sidebar-nav" aria-expanded="false">
+  <i class="fa-solid fa-bars"></i>
+</button>
+<div class="mobile-nav-backdrop admin-mobile-backdrop" aria-hidden="true"></div>
+
+<script>
+  (function () {
+    const body = document.body;
+    const toggle = document.querySelector('.admin-mobile-toggle');
+    const backdrop = document.querySelector('.admin-mobile-backdrop');
+    const navLinks = document.querySelectorAll('.admin-sidebar a');
+    const openClass = 'admin-mobile-nav-open';
+
+    if (!toggle || !backdrop) {
+      return;
+    }
+
+    function setOpenState(isOpen) {
+      body.classList.toggle(openClass, isOpen);
+      toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
+    toggle.addEventListener('click', function () {
+      setOpenState(!body.classList.contains(openClass));
+    });
+
+    backdrop.addEventListener('click', function () {
+      setOpenState(false);
+    });
+
+    navLinks.forEach(function (link) {
+      link.addEventListener('click', function () {
+        setOpenState(false);
+      });
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        setOpenState(false);
+      }
+    });
+  })();
+</script>
