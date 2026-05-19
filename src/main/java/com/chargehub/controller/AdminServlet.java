@@ -1,12 +1,9 @@
 package com.chargehub.controller;
 
-import com.chargehub.dao.BookingDAO;
 import com.chargehub.dao.ContactDAO;
-import com.chargehub.dao.DistrictDAO;
 import com.chargehub.dao.PaymentDAO;
 import com.chargehub.dao.ReviewDAO;
 import com.chargehub.dao.UserDAO;
-import com.chargehub.model.Booking;
 import com.chargehub.model.Payment;
 import com.chargehub.model.User;
 import com.chargehub.util.DBConnection;
