@@ -1,8 +1,10 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%-- Author: Imtiyaz Ansari --%>
 <html>
 <head>
   <title>Manager Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
 </head>
 <body class="manager-dashboard-page">
@@ -15,7 +17,6 @@
         <h1>Dashboard</h1>
         <p>Here's what's happening at your stations today, ${dashboardDate}.</p>
       </div>
-      <div class="manager-system-status"><i class="fa-solid fa-wave-square"></i>System Status: Healthy</div>
     </section>
 
     <section class="manager-metrics">

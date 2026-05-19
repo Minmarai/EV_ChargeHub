@@ -1,9 +1,11 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%-- Author: Imtiyaz Ansari --%>
 <html>
 <head>
   <title>${empty slot ? 'Add New Charging Slot' : 'Edit Charging Slot'}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
 </head>
 <body class="manager-dashboard-page manager-slot-form-page">

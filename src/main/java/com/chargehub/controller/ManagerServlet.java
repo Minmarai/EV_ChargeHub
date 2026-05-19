@@ -3,13 +3,9 @@ package com.chargehub.controller;
 import com.chargehub.dao.BookingDAO;
 import com.chargehub.dao.DistrictDAO;
 import com.chargehub.dao.PaymentDAO;
-import com.chargehub.dao.SlotDAO;
-import com.chargehub.dao.StationDAO;
 import com.chargehub.dao.UserDAO;
 import com.chargehub.model.Booking;
 import com.chargehub.model.Payment;
-import com.chargehub.model.Slot;
-import com.chargehub.model.Station;
 import com.chargehub.model.User;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -23,11 +19,15 @@ import java.sql.Date;
 import java.sql.Time;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @WebServlet("/station-manager/*")
+/**
+ * Author: Imtiyaz Ansari
+ */
 public class ManagerServlet extends HttpServlet {
     private int uid(HttpServletRequest request) {
         return (int) request.getSession().getAttribute("userId");
@@ -47,6 +47,14 @@ public class ManagerServlet extends HttpServlet {
             case "/stations":
                 List<Station> stations = stationDAO.findByManager(managerId);
                 request.setAttribute("stations", stations);
+                SlotDAO slotDAO = new SlotDAO();
+                Map<Integer, Integer> availablePortsMap = new HashMap<>();
+                for (Station s : stations) {
+                    int booked = slotDAO.countBookedPortsByStation(s.getStationId());
+                    int available = Math.max(0, s.getTotalPorts() - booked);
+                    availablePortsMap.put(s.getStationId(), available);
+                }
+                request.setAttribute("availablePortsMap", availablePortsMap);
                 if (!stations.isEmpty()) {
                     request.setAttribute("firstStationId", stations.get(0).getStationId());
                 }
@@ -54,7 +62,13 @@ public class ManagerServlet extends HttpServlet {
                 break;
             case "/station-form":
                 request.setAttribute("districts", new DistrictDAO().findAll());
-                request.setAttribute("station", stationDAO.findById(Integer.parseInt(request.getParameter("id"))));
+                int stationFormId = Integer.parseInt(request.getParameter("id"));
+                Station stationForm = stationDAO.findById(stationFormId);
+                if (stationForm == null || stationForm.getManagerId() != managerId) {
+                    response.sendRedirect(request.getContextPath() + "/error");
+                    break;
+                }
+                request.setAttribute("station", stationForm);
                 forward(request, response, "manager/station-form.jsp");
                 break;
             case "/slots":
@@ -65,7 +79,13 @@ public class ManagerServlet extends HttpServlet {
             case "/slot-form":
                 request.setAttribute("stations", stationDAO.findByManager(managerId));
                 if (request.getParameter("id") != null) {
-                    request.setAttribute("slot", new SlotDAO().findById(Integer.parseInt(request.getParameter("id"))));
+                    int slotId = Integer.parseInt(request.getParameter("id"));
+                    Slot slot = new SlotDAO().findById(slotId);
+                    if (slot == null || !managerOwnsStation(managerId, slot.getStationId(), stationDAO)) {
+                        response.sendRedirect(request.getContextPath() + "/error");
+                        break;
+                    }
+                    request.setAttribute("slot", slot);
                 }
                 forward(request, response, "manager/slot-form.jsp");
                 break;
@@ -75,11 +95,13 @@ public class ManagerServlet extends HttpServlet {
                 break;
             case "/booking":
                 Booking booking = new BookingDAO().findById(Integer.parseInt(request.getParameter("id")));
-                request.setAttribute("booking", booking);
-                if (booking != null) {
-                    User user = new UserDAO().findById(booking.getUserId());
-                    request.setAttribute("bookingUser", user);
+                if (booking == null || !managerOwnsStation(managerId, booking.getStationId(), stationDAO)) {
+                    response.sendRedirect(request.getContextPath() + "/error");
+                    break;
                 }
+                request.setAttribute("booking", booking);
+                User user = new UserDAO().findById(booking.getUserId());
+                request.setAttribute("bookingUser", user);
                 forward(request, response, "manager/booking-details.jsp");
                 break;
             case "/payments":
@@ -104,33 +126,80 @@ public class ManagerServlet extends HttpServlet {
                 forward(request, response, "manager/payments.jsp");
                 break;
             case "/schedule":
-                List<Station> managerStations = stationDAO.findByManager(managerId);
-                request.setAttribute("stations", managerStations);
-                int selectedStationId = 0;
-                if (request.getParameter("stationId") != null && !request.getParameter("stationId").isBlank()) {
-                    selectedStationId = Integer.parseInt(request.getParameter("stationId"));
-                } else if (!managerStations.isEmpty()) {
-                    selectedStationId = managerStations.get(0).getStationId();
-                }
-                Station selectedStation = null;
-                for (Station station : managerStations) {
-                    if (station.getStationId() == selectedStationId) {
-                        selectedStation = station;
-                        break;
-                    }
-                }
-                request.setAttribute("selectedStation", selectedStation);
-                request.setAttribute("scheduleSlots", new SlotDAO().findByManager(managerId));
-                forward(request, response, "manager/schedule.jsp");
+                response.sendRedirect(request.getContextPath() + "/station-manager/slots");
                 break;
             case "/payment":
-                request.setAttribute("payment", new PaymentDAO().findById(Integer.parseInt(request.getParameter("id"))));
+                Payment paymentDetail = new PaymentDAO().findById(Integer.parseInt(request.getParameter("id")));
+                if (paymentDetail == null) {
+                    response.sendRedirect(request.getContextPath() + "/error");
+                    break;
+                }
+                Booking paymentDetailBooking = new BookingDAO().findById(paymentDetail.getBookingId());
+                if (paymentDetailBooking == null || !managerOwnsStation(managerId, paymentDetailBooking.getStationId(), stationDAO)) {
+                    response.sendRedirect(request.getContextPath() + "/error");
+                    break;
+                }
+                request.setAttribute("payment", paymentDetail);
                 forward(request, response, "manager/payment-details.jsp");
                 break;
             case "/reports":
                 List<Booking> reportBookings = new BookingDAO().findByManager(managerId);
                 List<Payment> reportPayments = new PaymentDAO().findByManager(managerId);
                 List<Station> reportStations = stationDAO.findByManager(managerId);
+
+                if ("csv".equalsIgnoreCase(request.getParameter("export"))) {
+                    response.setContentType("text/csv;charset=UTF-8");
+                    response.setHeader("Content-Disposition", "attachment; filename=station-manager-reports.csv");
+
+                    Map<Integer, Integer> csvStationBookingCount = new HashMap<>();
+                    Map<Integer, BigDecimal> csvStationRevenue = new HashMap<>();
+                    Map<Integer, Station> stationById = new HashMap<>();
+                    Map<String, Integer> stationIdByName = new HashMap<>();
+                    for (Station station : reportStations) {
+                        csvStationBookingCount.put(station.getStationId(), 0);
+                        csvStationRevenue.put(station.getStationId(), BigDecimal.ZERO);
+                        stationById.put(station.getStationId(), station);
+                        stationIdByName.put(station.getStationName(), station.getStationId());
+                    }
+
+                    for (Booking reportBooking : reportBookings) {
+                        Integer stationId = stationIdByName.get(reportBooking.getStationName());
+                        if (stationId != null) {
+                            csvStationBookingCount.put(stationId, csvStationBookingCount.getOrDefault(stationId, 0) + 1);
+                        }
+                    }
+
+                    for (Payment payment : reportPayments) {
+                        Integer stationId = stationIdByName.get(payment.getStationName());
+                        if (stationId != null && payment.getAmount() != null) {
+                            csvStationRevenue.put(stationId, csvStationRevenue.getOrDefault(stationId, BigDecimal.ZERO).add(payment.getAmount()));
+                        }
+                    }
+
+                    List<Integer> stationIds = new ArrayList<>(csvStationBookingCount.keySet());
+                    stationIds.sort(Integer::compareTo);
+
+                    StringBuilder csv = new StringBuilder();
+                    csv.append("Station ID,Station Name,District,Revenue (NPR),Bookings,Utilization (%),Status\n");
+                    for (Integer stationId : stationIds) {
+                        Station station = stationById.get(stationId);
+                        if (station == null) continue;
+                        int bookings = csvStationBookingCount.getOrDefault(stationId, 0);
+                        int utilization = Math.min(100, bookings * 7);
+                        BigDecimal revenue = csvStationRevenue.getOrDefault(stationId, BigDecimal.ZERO);
+
+                        csv.append(csvValue(String.valueOf(station.getStationId()))).append(',');
+                        csv.append(csvValue(station.getStationName())).append(',');
+                        csv.append(csvValue(station.getDistrictName())).append(',');
+                        csv.append(csvValue(revenue.toPlainString())).append(',');
+                        csv.append(csvValue(String.valueOf(bookings))).append(',');
+                        csv.append(csvValue(String.valueOf(utilization))).append(',');
+                        csv.append(csvValue(station.getStatus())).append('\n');
+                    }
+
+                    response.getWriter().write(csv.toString());
+                    break;
+                }
 
                 BigDecimal totalRevenue = BigDecimal.ZERO;
                 for (Payment payment : reportPayments) {
@@ -212,11 +281,25 @@ public class ManagerServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String action = request.getParameter("action");
         if ("saveSlot".equals(action)) {
+            int managerId = uid(request);
+            int stationId = Integer.parseInt(request.getParameter("stationId"));
+            StationDAO stationDAO = new StationDAO();
+            if (!managerOwnsStation(managerId, stationId, stationDAO)) {
+                response.sendRedirect(request.getContextPath() + "/error");
+                return;
+            }
+
             Slot slot = new Slot();
             if (request.getParameter("slotId") != null && !request.getParameter("slotId").isBlank()) {
-                slot.setSlotId(Integer.parseInt(request.getParameter("slotId")));
+                int slotId = Integer.parseInt(request.getParameter("slotId"));
+                Slot existing = new SlotDAO().findById(slotId);
+                if (existing == null || !managerOwnsStation(managerId, existing.getStationId(), stationDAO)) {
+                    response.sendRedirect(request.getContextPath() + "/error");
+                    return;
+                }
+                slot.setSlotId(slotId);
             }
-            slot.setStationId(Integer.parseInt(request.getParameter("stationId")));
+            slot.setStationId(stationId);
             slot.setSlotDate(Date.valueOf(request.getParameter("slotDate")));
             slot.setStartTime(Time.valueOf(request.getParameter("startTime") + ":00"));
             slot.setEndTime(Time.valueOf(request.getParameter("endTime") + ":00"));
@@ -250,6 +333,28 @@ public class ManagerServlet extends HttpServlet {
 
             stationDAO.update(station);
             response.sendRedirect(request.getContextPath() + "/station-manager/stations");
+        } else if ("createStation".equals(action)) {
+            int managerId = uid(request);
+            Station s = new Station();
+            s.setManagerId(managerId);
+            s.setStationName("New Station");
+            s.setDistrictId(1);
+            s.setAddress("");
+            s.setContactNumber("");
+            s.setChargerType("Type 2");
+            s.setTotalPorts(2);
+            s.setOpeningTime(Time.valueOf("06:00:00"));
+            s.setClosingTime(Time.valueOf("22:00:00"));
+            s.setPricePerHour(new BigDecimal("100"));
+            s.setStatus("inactive");
+            new StationDAO().save(s);
+            StationDAO newStationDAO = new StationDAO();
+            List<Station> managerStations = newStationDAO.findByManager(managerId);
+            if (!managerStations.isEmpty()) {
+                response.sendRedirect(request.getContextPath() + "/station-manager/station-form?id=" + managerStations.get(0).getStationId());
+            } else {
+                response.sendRedirect(request.getContextPath() + "/station-manager/stations");
+            }
         } else if ("deleteStation".equals(action)) {
             int managerId = uid(request);
             int stationId = Integer.parseInt(request.getParameter("stationId"));
@@ -258,75 +363,90 @@ public class ManagerServlet extends HttpServlet {
                 new StationDAO().delete(stationId);
             }
             response.sendRedirect(request.getContextPath() + "/station-manager/stations");
-        } else if ("saveSchedule".equals(action)) {
-            if (request.getParameter("stationId") == null || request.getParameter("stationId").isBlank()) {
-                response.sendRedirect(request.getContextPath() + "/station-manager/schedule");
-                return;
-            }
-            int managerId = uid(request);
-            int stationId = Integer.parseInt(request.getParameter("stationId"));
-            StationDAO stationDAO = new StationDAO();
-            Station existing = stationDAO.findById(stationId);
-            if (existing == null || existing.getManagerId() != managerId) {
-                response.sendRedirect(request.getContextPath() + "/error");
-                return;
-            }
-
-            Station station = new Station();
-            station.setStationId(existing.getStationId());
-            station.setManagerId(existing.getManagerId());
-            station.setStationName(existing.getStationName());
-            station.setDistrictId(existing.getDistrictId());
-            station.setAddress(existing.getAddress());
-            station.setContactNumber(existing.getContactNumber());
-            station.setChargerType(existing.getChargerType());
-            station.setTotalPorts(existing.getTotalPorts());
-            station.setPricePerHour(existing.getPricePerHour());
-            station.setStatus(existing.getStatus());
-            station.setOpeningTime(Time.valueOf(request.getParameter("openingTime") + ":00"));
-            station.setClosingTime(Time.valueOf(request.getParameter("closingTime") + ":00"));
-            stationDAO.update(station);
-            response.sendRedirect(request.getContextPath() + "/station-manager/schedule?stationId=" + stationId);
-        } else if ("discardSchedule".equals(action)) {
-            String stationId = request.getParameter("stationId");
-            response.sendRedirect(request.getContextPath() + "/station-manager/schedule" + (stationId == null ? "" : "?stationId=" + stationId));
+        } else if ("saveSchedule".equals(action) || "discardSchedule".equals(action)) {
+            response.sendRedirect(request.getContextPath() + "/station-manager/slots");
         } else if ("disableSlot".equals(action)) {
+            int managerId = uid(request);
             int slotId = Integer.parseInt(request.getParameter("slotId"));
-            new SlotDAO().updateStatus(slotId, "inactive");
+            Slot slot = new SlotDAO().findById(slotId);
+            if (slot != null && managerOwnsStation(managerId, slot.getStationId(), new StationDAO())) {
+                new SlotDAO().updateStatus(slotId, "inactive");
+            }
+            response.sendRedirect(request.getContextPath() + "/station-manager/slots");
+        } else if ("enableSlot".equals(action)) {
+            int managerId = uid(request);
+            int slotId = Integer.parseInt(request.getParameter("slotId"));
+            Slot slot = new SlotDAO().findById(slotId);
+            if (slot != null && managerOwnsStation(managerId, slot.getStationId(), new StationDAO())) {
+                new SlotDAO().updateStatus(slotId, "available");
+            }
             response.sendRedirect(request.getContextPath() + "/station-manager/slots");
         } else if ("bulkDisableSlots".equals(action)) {
+            int managerId = uid(request);
             String[] slotIds = request.getParameterValues("slotIds");
             if (slotIds != null) {
                 SlotDAO slotDAO = new SlotDAO();
                 for (String slotId : slotIds) {
-                    slotDAO.updateStatus(Integer.parseInt(slotId), "inactive");
+                    Slot slot = slotDAO.findById(Integer.parseInt(slotId));
+                    if (slot != null && managerOwnsStation(managerId, slot.getStationId(), new StationDAO())) {
+                        slotDAO.updateStatus(Integer.parseInt(slotId), "inactive");
+                    }
                 }
             }
             response.sendRedirect(request.getContextPath() + "/station-manager/slots");
         } else if ("bulkDeleteSlots".equals(action)) {
+            int managerId = uid(request);
             String[] slotIds = request.getParameterValues("slotIds");
             if (slotIds != null) {
                 SlotDAO slotDAO = new SlotDAO();
                 for (String slotId : slotIds) {
-                    slotDAO.delete(Integer.parseInt(slotId));
+                    Slot slot = slotDAO.findById(Integer.parseInt(slotId));
+                    if (slot != null && managerOwnsStation(managerId, slot.getStationId(), new StationDAO())) {
+                        slotDAO.delete(Integer.parseInt(slotId));
+                    }
                 }
             }
             response.sendRedirect(request.getContextPath() + "/station-manager/slots");
         } else if ("deleteSlot".equals(action)) {
-            new SlotDAO().delete(Integer.parseInt(request.getParameter("slotId")));
+            int managerId = uid(request);
+            int slotId = Integer.parseInt(request.getParameter("slotId"));
+            Slot slot = new SlotDAO().findById(slotId);
+            if (slot != null && managerOwnsStation(managerId, slot.getStationId(), new StationDAO())) {
+                new SlotDAO().delete(slotId);
+            }
             response.sendRedirect(request.getContextPath() + "/station-manager/slots");
         } else if ("bookingStatus".equals(action)) {
-            new BookingDAO().updateStatus(Integer.parseInt(request.getParameter("bookingId")), request.getParameter("status"));
+            int managerId = uid(request);
+            int bookingId = Integer.parseInt(request.getParameter("bookingId"));
+            Booking booking = new BookingDAO().findById(bookingId);
+            if (booking != null && managerOwnsStation(managerId, booking.getStationId(), new StationDAO())) {
+                new BookingDAO().updateStatus(bookingId, request.getParameter("status"));
+            }
             response.sendRedirect(request.getContextPath() + "/station-manager/bookings");
         } else if ("paymentStatus".equals(action)) {
-            new PaymentDAO().updateStatus(Integer.parseInt(request.getParameter("paymentId")), request.getParameter("status"));
+            int managerId = uid(request);
+            int paymentId = Integer.parseInt(request.getParameter("paymentId"));
+            Payment payment = new PaymentDAO().findById(paymentId);
+            if (payment != null) {
+                Booking booking = new BookingDAO().findById(payment.getBookingId());
+                if (booking != null && managerOwnsStation(managerId, booking.getStationId(), new StationDAO())) {
+                    new PaymentDAO().updateStatus(paymentId, request.getParameter("status"));
+                }
+            }
             response.sendRedirect(request.getContextPath() + "/station-manager/payments");
         }
+    }
+
+    private boolean managerOwnsStation(int managerId, int stationId, StationDAO stationDAO) {
+        Station station = stationDAO.findById(stationId);
+        return station != null && station.getManagerId() == managerId;
     }
 
     private void loadDashboardData(HttpServletRequest request, int managerId, StationDAO stationDAO) {
         BookingDAO bookingDAO = new BookingDAO();
         PaymentDAO paymentDAO = new PaymentDAO();
+        
+        bookingDAO.syncCompletedFromPayments(managerId);
 
         List<Booking> managerBookings = bookingDAO.findByManager(managerId);
         List<Payment> managerPayments = paymentDAO.findByManager(managerId);
@@ -358,5 +478,12 @@ public class ManagerServlet extends HttpServlet {
 
     private void forward(HttpServletRequest request, HttpServletResponse response, String page) throws ServletException, IOException {
         request.getRequestDispatcher("/WEB-INF/views/" + page).forward(request, response);
+    }
+
+    private String csvValue(String input) {
+        if (input == null) return "";
+        String escaped = input.replace("\"", "\"\"");
+        if (escaped.contains(",") || escaped.contains("\n")) return '"' + escaped + '"';
+        return escaped;
     }
 }

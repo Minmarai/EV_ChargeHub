@@ -3,9 +3,12 @@ package com.chargehub.model;
 import java.math.BigDecimal;
 import java.sql.Time;
 
+/**
+ * Author: Imtiyaz Ansari
+ */
 public class Station {
     private int stationId, districtId, managerId, totalPorts;
-    private String stationName, districtName, managerName, address, contactNumber, chargerType, status;
+    private String stationName, districtName, managerName, address, contactNumber, chargerType, status, activeDays;
     private Time openingTime, closingTime;
     private BigDecimal pricePerHour;
     public int getStationId() { return stationId; }
@@ -30,6 +33,8 @@ public class Station {
     public void setChargerType(String chargerType) { this.chargerType = chargerType; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getActiveDays() { return activeDays; }
+    public void setActiveDays(String activeDays) { this.activeDays = activeDays; }
     public Time getOpeningTime() { return openingTime; }
     public void setOpeningTime(Time openingTime) { this.openingTime = openingTime; }
     public Time getClosingTime() { return closingTime; }

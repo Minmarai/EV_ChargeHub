@@ -1,9 +1,11 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%-- Author: Imtiyaz Ansari --%>
 <html>
 <head>
   <title>Manage Slots</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
 </head>
 <body class="manager-dashboard-page manager-slots-page">
@@ -35,8 +37,6 @@
       </select>
       <div class="slots-bulk-actions" id="bulkActions">
         <span><strong id="selectedCount">0</strong> selected</span>
-        <button type="button" id="bulkDisableBtn"><i class="fa-solid fa-ban"></i> Disable</button>
-        <button type="button" id="bulkDeleteBtn" class="danger"><i class="fa-regular fa-trash-can"></i> Delete</button>
       </div>
     </section>
 
@@ -68,16 +68,27 @@
             <td><span class="slot-status ${fn:toLowerCase(slot.availabilityStatus)}">${slot.availabilityStatus}</span></td>
             <td>
               <div class="slot-actions">
-                <a href="${pageContext.request.contextPath}/station-manager/slot-form?id=${slot.slotId}" title="Edit Slot"><i class="fa-solid fa-pen-to-square"></i></a>
-                <form method="post">
-                  <input type="hidden" name="action" value="disableSlot">
-                  <input type="hidden" name="slotId" value="${slot.slotId}">
-                  <button type="submit" title="Disable Slot"><i class="fa-solid fa-ban"></i></button>
-                </form>
+                <a href="${pageContext.request.contextPath}/station-manager/slot-form?id=${slot.slotId}"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                <c:choose>
+                  <c:when test="${fn:toLowerCase(slot.availabilityStatus) == 'available'}">
+                    <form method="post">
+                      <input type="hidden" name="action" value="disableSlot">
+                      <input type="hidden" name="slotId" value="${slot.slotId}">
+                      <button type="submit"><i class="fa-solid fa-ban"></i> Disable</button>
+                    </form>
+                  </c:when>
+                  <c:otherwise>
+                    <form method="post">
+                      <input type="hidden" name="action" value="enableSlot">
+                      <input type="hidden" name="slotId" value="${slot.slotId}">
+                      <button type="submit" class="enable"><i class="fa-solid fa-check"></i> Enable</button>
+                    </form>
+                  </c:otherwise>
+                </c:choose>
                 <form method="post" onsubmit="return confirm('Delete this slot?');">
                   <input type="hidden" name="action" value="deleteSlot">
                   <input type="hidden" name="slotId" value="${slot.slotId}">
-                  <button type="submit" class="danger" title="Delete Slot"><i class="fa-regular fa-trash-can"></i></button>
+                  <button type="submit" class="danger"><i class="fa-regular fa-trash-can"></i> Delete</button>
                 </form>
               </div>
             </td>

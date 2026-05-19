@@ -1,6 +1,5 @@
 package com.chargehub.dao;
 
-import com.chargehub.model.Station;
 import com.chargehub.util.DBConnection;
 import java.math.BigDecimal;
 import java.sql.*;
@@ -18,6 +17,8 @@ import java.util.*;
  *
  * <p>All database connections are obtained via {@link DBConnection#getConnection()}
  * and are closed automatically using try-with-resources.</p>
+ *
+ * <p>Author: Imtiyaz Ansari</p>
  */
 public class StationDAO {
 
@@ -54,6 +55,7 @@ public class StationDAO {
         s.setClosingTime(rs.getTime("closing_time"));
         s.setPricePerHour(rs.getBigDecimal("price_per_hour"));
         s.setStatus(rs.getString("status"));
+        s.setActiveDays(rs.getString("active_days"));
         return s;
     }
 
@@ -116,6 +118,128 @@ public class StationDAO {
     }
 
     /**
+     * Searches for stations using optional filters for district, charger type, status,
+     * and a free-text keyword, ordered by station ID descending.
+     *
+     * <p>This is the extended overload of {@link #search(Integer, String)} and lifts
+     * the implicit {@code status = 'active'} restriction, allowing searches across
+     * stations of any status. It is intended for administrative views where filtering
+     * by status or keyword is required.</p>
+     *
+     * <p>All four parameters are optional — omitting any (by passing {@code null},
+     * a blank string, or {@code <= 0} for {@code districtId}) removes that condition
+     * from the query entirely. When all parameters are omitted, all stations are returned.</p>
+     *
+     * <p>The {@code keyword} filter performs a case-insensitive partial match against
+     * both {@code station_name} and {@code address}, using {@code LIKE} with
+     * {@code %keyword%} padding. Values are lowercased and trimmed before binding.</p>
+     *
+     * <p>All parameters are bound via {@link PreparedStatement}, making this method
+     * safe against SQL injection.</p>
+     *
+     * @param districtId  the ID of the district to filter by, or {@code null} / {@code <= 0}
+     *                    to skip the district filter
+     * @param chargerType the charger type to filter by (e.g. {@code "AC"}, {@code "DC"}),
+     *                    or {@code null} / blank to skip
+     * @param status      the station status to filter by (e.g. {@code "active"},
+     *                    {@code "inactive"}), or {@code null} / blank to skip
+     * @param keyword     a free-text search term matched against station name and address,
+     *                    or {@code null} / blank to skip
+     * @return a {@link List} of matching {@link Station} objects ordered by station ID descending;
+     *         empty list if no matches found or an error occurs
+     */
+    public List<Station> search(Integer districtId, String chargerType, String status, String keyword) {
+        List<Station> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(base + " WHERE 1=1");
+
+        if (districtId != null && districtId > 0) sql.append(" AND s.district_id=?");
+        if (chargerType != null && !chargerType.isBlank()) sql.append(" AND s.charger_type=?");
+        if (status != null && !status.isBlank()) sql.append(" AND s.status=?");
+        if (keyword != null && !keyword.isBlank()) sql.append(" AND (LOWER(s.station_name) LIKE ? OR LOWER(s.address) LIKE ?)");
+        sql.append(" ORDER BY s.station_id DESC");
+
+        try (Connection c = DBConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql.toString())) {
+            int i = 1;
+            if (districtId != null && districtId > 0) ps.setInt(i++, districtId);
+            if (chargerType != null && !chargerType.isBlank()) ps.setString(i++, chargerType);
+            if (status != null && !status.isBlank()) ps.setString(i++, status);
+            if (keyword != null && !keyword.isBlank()) {
+                String search = "%" + keyword.trim().toLowerCase() + "%";
+                ps.setString(i++, search);
+                ps.setString(i, search);
+            }
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) list.add(map(rs));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * Retrieves the distinct set of charger types currently in use across all stations.
+     *
+     * <p>Results are trimmed of surrounding whitespace and sorted alphabetically.
+     * Rows where {@code charger_type} is {@code NULL} or blank after trimming are
+     * excluded, ensuring only meaningful values are returned.</p>
+     *
+     * <p>Intended for populating filter dropdowns or validation lists in both
+     * public-facing and administrative UIs.</p>
+     *
+     * @return a {@link List} of distinct non-blank charger type strings sorted
+     *         alphabetically; empty list if none exist or an error occurs
+     */
+    public List<String> findActiveChargerTypes() {
+        List<String> list = new ArrayList<>();
+        String sql = "SELECT DISTINCT TRIM(charger_type) charger_type FROM stations " +
+                "WHERE charger_type IS NOT NULL AND TRIM(charger_type)<>'' " +
+                "ORDER BY TRIM(charger_type)";
+        try (Connection c = DBConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) list.add(rs.getString("charger_type"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * Retrieves the distinct set of statuses currently assigned to stations,
+     * sorted with {@code "active"} first, {@code "inactive"} second, and any
+     * other values alphabetically after that.
+     *
+     * <p>Results are trimmed and lowercased before being added to the list.
+     * Rows where {@code status} is {@code NULL} or blank after trimming are
+     * excluded.</p>
+     *
+     * <p>Intended for populating status filter dropdowns in administrative UIs,
+     * where a deterministic ordering improves usability.</p>
+     *
+     * @return a {@link List} of distinct lowercase status strings in priority order;
+     *         empty list if none exist or an error occurs
+     */
+    public List<String> findAvailableStatuses() {
+        List<String> list = new ArrayList<>();
+        String sql = "SELECT DISTINCT status FROM stations " +
+                "WHERE status IS NOT NULL " +
+                "ORDER BY CASE status " +
+                "WHEN 'active' THEN 1 WHEN 'inactive' THEN 2 ELSE 3 END, status";
+        try (Connection c = DBConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                String status = rs.getString("status");
+                if (status != null && !status.isBlank()) list.add(status.trim().toLowerCase());
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
      * Executes a raw SQL query and maps each resulting row to a {@link Station}.
      *
      * <p><strong>Note:</strong> This method executes the provided SQL string directly
@@ -171,7 +295,7 @@ public class StationDAO {
     public boolean save(Station s) {
         String sql = "INSERT INTO stations(station_name, district_id, manager_id, address, " +
                 "contact_number, charger_type, total_ports, opening_time, closing_time, " +
-                "price_per_hour, status) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "price_per_hour, status, active_days) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         return executeSaveUpdate(sql, s, false);
     }
 
@@ -189,7 +313,7 @@ public class StationDAO {
     public boolean update(Station s) {
         String sql = "UPDATE stations SET station_name=?, district_id=?, manager_id=?, " +
                 "address=?, contact_number=?, charger_type=?, total_ports=?, opening_time=?, " +
-                "closing_time=?, price_per_hour=?, status=? WHERE station_id=?";
+                "closing_time=?, price_per_hour=?, status=?, active_days=? WHERE station_id=?";
         return executeSaveUpdate(sql, s, true);
     }
 
@@ -249,7 +373,8 @@ public class StationDAO {
             ps.setTime(9, s.getClosingTime());
             ps.setBigDecimal(10, s.getPricePerHour() == null ? BigDecimal.ZERO : s.getPricePerHour());
             ps.setString(11, s.getStatus());
-            if (update) ps.setInt(12, s.getStationId());
+            ps.setString(12, s.getActiveDays() != null ? s.getActiveDays() : "Mon,Tue,Wed,Thu,Fri,Sat");
+            if (update) ps.setInt(13, s.getStationId());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -288,6 +413,37 @@ public class StationDAO {
     public int count() {
         try (Connection c = DBConnection.getConnection();
              PreparedStatement ps = c.prepareStatement("SELECT COUNT(*) FROM stations")) {
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /**
+     * Returns the number of stations matching a given status.
+     *
+     * <p>The status comparison is case- and whitespace-insensitive, using
+     * {@code LOWER(TRIM(...))} on both the stored value and the bound parameter,
+     * tolerating minor inconsistencies such as {@code "Active"} or {@code " active "}.</p>
+     *
+     * <p>If {@code status} is {@code null} or blank, the filter is omitted entirely
+     * and the total count of all stations is returned, making this method behave
+     * identically to {@link #count()} in that case.</p>
+     *
+     * @param status the status value to filter by (e.g. {@code "active"}, {@code "inactive"}),
+     *               or {@code null} / blank to count all stations regardless of status
+     * @return the number of stations matching the given status, or the total station count
+     *         if {@code status} is blank; {@code 0} if an error occurs
+     */
+    public int countByStatus(String status) {
+        String sql = status == null || status.isBlank()
+                ? "SELECT COUNT(*) FROM stations"
+                : "SELECT COUNT(*) FROM stations WHERE LOWER(TRIM(status)) = LOWER(TRIM(?))";
+        try (Connection c = DBConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            if (status != null && !status.isBlank()) ps.setString(1, status);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return rs.getInt(1);
         } catch (SQLException e) {

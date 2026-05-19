@@ -1,9 +1,11 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%-- Author: Imtiyaz Ansari --%>
 <html>
 <head>
   <title>Station Reports</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
 </head>
 <body class="manager-dashboard-page manager-reports-page">
@@ -15,10 +17,6 @@
       <div>
         <h1>Station Reports</h1>
         <p>Analytics and performance metrics for your managed stations.</p>
-      </div>
-      <div class="reports-head-actions">
-        <button type="button" class="period-btn"><i class="fa-regular fa-calendar"></i> Last 30 Days <i class="fa-solid fa-chevron-down"></i></button>
-        <button type="button" class="export-btn"><i class="fa-solid fa-download"></i> Export CSV</button>
       </div>
     </section>
 
@@ -46,33 +44,21 @@
     </section>
 
     <section class="report-mid-grid">
-      <article class="report-panel trend-panel">
-        <h2>Revenue &amp; Booking Trend</h2>
-        <p>Monthly overview of financial and operational performance</p>
-        <div class="trend-placeholder">
-          <div class="trend-grid"></div>
-          <div class="trend-bars">
-            <span style="height:28%"></span>
-            <span style="height:36%"></span>
-            <span style="height:52%"></span>
-            <span style="height:44%"></span>
-            <span style="height:64%"></span>
-            <span style="height:72%"></span>
-            <span style="height:58%"></span>
-          </div>
-        </div>
-      </article>
-
       <article class="report-panel status-panel">
-        <h2>Booking Status</h2>
+        <h2>Booking Outcome Distribution</h2>
         <p>Distribution of booking outcomes</p>
         <div class="status-stats">
           <div><span class="dot done"></span> Completed <b>${totalBookings == 0 ? 0 : (completedBookings * 100 / totalBookings)}%</b></div>
           <div><span class="dot cancelled"></span> Cancelled <b>${totalBookings == 0 ? 0 : (cancelledBookings * 100 / totalBookings)}%</b></div>
           <div><span class="dot noshow"></span> No-Show <b>${totalBookings == 0 ? 0 : (noShowBookings * 100 / totalBookings)}%</b></div>
         </div>
+      </article>
+
+      <article class="report-panel slot-panel">
+        <h2>Most Used Time Slot</h2>
+        <p>Top time slot by booking count</p>
         <div class="slot-insight">
-          <label>Most Used Time Slot</label>
+          <label>Time Slot</label>
           <strong>${mostUsedSlot}</strong>
           <small>${mostUsedSlotCount} bookings</small>
         </div>
