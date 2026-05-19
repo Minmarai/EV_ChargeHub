@@ -1,8 +1,10 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%-- Author: Minma Rai --%>
 <html>
 <head>
     <title>Station Managers</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
 </head>
 <body class="admin-dashboard-page">
@@ -18,7 +20,6 @@
             </div>
             <div class="admin-topbar-actions">
                 <label class="admin-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search records..."></label>
-                <i class="fa-regular fa-bell"></i>
                 <div class="admin-user-chip">
                     <div>
                         <strong>Admin User</strong>
@@ -50,8 +51,9 @@
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input type="text" name="q" value="${q}" placeholder="Search by name, email or station...">
                 </div>
+                <button type="submit" class="admin-apply-btn">Apply</button>
+                <button type="submit" class="admin-reset-link" name="reset" value="1">Reset Filters</button>
                 <div class="admin-users-filter-select">
-                    <i class="fa-solid fa-location-dot"></i>
                     <select name="region">
                         <option value="">Region</option>
                         <c:forEach var="rg" items="${regions}">
@@ -60,7 +62,6 @@
                     </select>
                 </div>
                 <div class="admin-users-filter-select">
-                    <i class="fa-solid fa-filter"></i>
                     <select name="status">
                         <option value="">Status</option>
                         <option value="Active" ${status == 'Active' ? 'selected' : ''}>Active</option>
@@ -124,7 +125,7 @@
             </div>
 
             <div class="admin-users-footer">
-                <span>Showing 1 to ${managerRows.size()} of ${managersCount} managers</span>
+                <span></span>
                 <div class="admin-users-pager">
                     <button type="button" disabled><i class="fa-solid fa-chevron-left"></i> Previous</button>
                     <button type="button" class="active">1</button>

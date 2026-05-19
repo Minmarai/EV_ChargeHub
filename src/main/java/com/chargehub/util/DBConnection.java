@@ -18,6 +18,8 @@ import java.sql.DriverManager;
  * Each call to {@link #getConnection()} opens a new physical connection to the database.
  * For production use, consider replacing this with a pooled data source
  * such as HikariCP or Apache DBCP to improve performance and resource management.</p>
+ *
+ * <p>Author: Minma Rai</p>
  */
 public class DBConnection {
 

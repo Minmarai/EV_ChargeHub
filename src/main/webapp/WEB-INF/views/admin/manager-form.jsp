@@ -1,8 +1,11 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%-- Author: Minma Rai --%>
 <html>
 <head>
   <title>Configure Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
 </head>
 <body class="admin-dashboard-page">
@@ -18,7 +21,6 @@
       </div>
       <div class="admin-topbar-actions">
         <label class="admin-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search records..."></label>
-        <i class="fa-regular fa-bell"></i>
         <div class="admin-user-chip">
           <div>
             <strong>Admin User</strong>
@@ -78,13 +80,13 @@
           <p>Manage geographical assignment and account status.</p>
           <label>
             Physical Address
-            <span class="admin-edit-input"><i class="fa-solid fa-location-dot"></i><textarea name="address" rows="4" required>${user.address}</textarea></span>
+            <span class="admin-edit-input admin-manager-address-field no-icon"><textarea name="address" rows="3" required>${user.address}</textarea></span>
           </label>
           <label class="admin-status-toggle-card">
             <span class="top">Active Account Status</span>
             <span class="sub">When disabled, the manager cannot log in to the dashboard.</span>
             <span class="inline">
-              <strong id="managerStatusLabel">${empty user.status ? 'PENDING' : user.status.toUpperCase()}</strong>
+              <strong id="managerStatusLabel">${empty user.status ? 'PENDING' : fn:toUpperCase(user.status)}</strong>
               <span class="admin-switch">
                 <input id="managerStatusSwitch" type="checkbox" ${user.status == 'Active' ? 'checked' : ''}>
                 <span></span>
