@@ -1,6 +1,5 @@
 package com.chargehub.controller;
 
-import com.chargehub.dao.ContactDAO;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;

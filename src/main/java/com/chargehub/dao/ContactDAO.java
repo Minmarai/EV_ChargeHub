@@ -12,6 +12,26 @@ import java.util.*;
  *
  * <p>All database connections are obtained via {@link DBConnection#getConnection()}
  * and are closed automatically using try-with-resources.</p>
+ *
+ * <p>The {@code contact_messages} table is expected to have at least the following columns:</p>
+ * <ul>
+ *   <li>{@code message_id} — auto-incremented primary key</li>
+ *   <li>{@code name} — full name of the sender</li>
+ *   <li>{@code email} — email address of the sender</li>
+ *   <li>{@code subject} — subject line of the message</li>
+ *   <li>{@code message} — body content of the message</li>
+ *   <li>{@code status} — read/unread state; defaults to {@code "unread"} on insert</li>
+ * </ul>
+ *
+ * <p>Typical usage flow:</p>
+ * <ol>
+ *   <li>A visitor submits the contact form → {@link #add(String, String, String, String)}</li>
+ *   <li>An admin lists all messages → {@link #findAll()}</li>
+ *   <li>Admin reads a message → {@link #markRead(int)}</li>
+ *   <li>Admin removes a message → {@link #delete(int)}</li>
+ * </ol>
+ *
+ * <p>Author: Rijam Shrestha</p>
  */
 public class ContactDAO {
 
@@ -19,12 +39,18 @@ public class ContactDAO {
   * Inserts a new contact message into the {@code contact_messages} table.
   *
   * <p>The message is stored with a default status of {@code "unread"}
-  * as defined by the database schema.</p>
+  * as defined by the database schema. No validation is performed on the
+  * input values — callers are responsible for sanitizing fields before
+  * passing them to this method.</p>
   *
-  * @param name    the full name of the person submitting the message
-  * @param email   the email address of the sender
-  * @param subject the subject line of the message
-  * @param message the body content of the contact message
+  * @param name    the full name of the person submitting the message;
+  *                must not be {@code null} or empty
+  * @param email   the email address of the sender used for reply purposes;
+  *                must not be {@code null} or empty
+  * @param subject the subject line summarizing the message topic;
+  *                must not be {@code null} or empty
+  * @param message the full body content of the contact message;
+  *                must not be {@code null} or empty
   * @return {@code true} if the record was successfully inserted; {@code false} otherwise
   */
  public boolean add(String name, String email, String subject, String message) {
@@ -49,11 +75,24 @@ public class ContactDAO {
   * (as returned by {@link java.sql.ResultSetMetaData#getColumnLabel(int)})
   * and values are the corresponding column data as {@link Object} instances.</p>
   *
-  * <p>Typical keys include: {@code message_id}, {@code name}, {@code email},
-  * {@code subject}, {@code message}, {@code status}.</p>
+  * <p>Typical keys present in each map include:</p>
+  * <ul>
+  *   <li>{@code message_id} — the unique identifier of the message ({@link Integer})</li>
+  *   <li>{@code name} — the sender's full name ({@link String})</li>
+  *   <li>{@code email} — the sender's email address ({@link String})</li>
+  *   <li>{@code subject} — the message subject ({@link String})</li>
+  *   <li>{@code message} — the message body ({@link String})</li>
+  *   <li>{@code status} — current read state, either {@code "read"} or {@code "unread"} ({@link String})</li>
+  * </ul>
   *
-  * @return a {@link List} of {@link Map} objects representing all contact messages;
-  *         returns an empty list if no records exist or an error occurs
+  * <p>The use of {@link Map} allows this method to remain flexible to schema changes
+  * without requiring a dedicated model class for contact messages.</p>
+  *
+  * @return a {@link List} of {@link Map} objects representing all contact messages,
+  *         sorted newest-first by {@code message_id};
+  *         returns an empty list if no records exist or a {@link SQLException} occurs
+  * @see #markRead(int)
+  * @see #delete(int)
   */
  public List<Map<String, Object>> findAll() {
   List<Map<String, Object>> list = new ArrayList<>();
@@ -75,10 +114,19 @@ public class ContactDAO {
  }
 
  /**
-  * Marks a contact message as {@code "read"} by updating its status field.
+  * Marks a contact message as {@code "read"} by updating its {@code status} field.
   *
-  * @param id the unique ID of the contact message to mark as read
+  * <p>This is a non-destructive status update intended for use when an admin
+  * opens or acknowledges a message. The message record remains in the database
+  * and can still be retrieved via {@link #findAll()}.</p>
+  *
+  * <p>If no message exists with the given {@code id}, the update affects zero
+  * rows and {@code false} is returned without throwing an exception.</p>
+  *
+  * @param id the unique ID of the contact message to mark as read;
+  *           must correspond to an existing {@code message_id} in the table
   * @return {@code true} if the update affected at least one row; {@code false} otherwise
+  * @see #delete(int)
   */
  public boolean markRead(int id) {
   try (Connection c = DBConnection.getConnection();
@@ -93,14 +141,20 @@ public class ContactDAO {
  }
 
  /**
-  * Permanently deletes a contact message from the database.
+  * Permanently deletes a contact message from the {@code contact_messages} table.
   *
-  * <p><strong>Note:</strong> This operation is irreversible.
-  * Consider using {@link #markRead(int)} for soft status updates instead.</p>
+  * <p><strong>Warning:</strong> This operation is irreversible and removes the record
+  * entirely from the database. If the intent is only to acknowledge a message without
+  * removing it, use {@link #markRead(int)} instead.</p>
   *
-  * @param id the unique ID of the contact message to delete
-  * @return {@code true} if the deletion was successful; {@code false} if no record
-  *         was found with the given ID or if an error occurs
+  * <p>If no message exists with the given {@code id}, the delete affects zero rows
+  * and {@code false} is returned without throwing an exception.</p>
+  *
+  * @param id the unique ID of the contact message to permanently delete;
+  *           must correspond to an existing {@code message_id} in the table
+  * @return {@code true} if the deletion was successful and at least one row was removed;
+  *         {@code false} if no record was found with the given ID or if an error occurs
+  * @see #markRead(int)
   */
  public boolean delete(int id) {
   try (Connection c = DBConnection.getConnection();
