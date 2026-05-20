@@ -1,3 +1,4 @@
+<%-- Author: Denisha Tamang --%>
 <!DOCTYPE html>
 <html>
 <head>
@@ -8,7 +9,6 @@
 <jsp:include page="../common/header.jsp"/>
 
 <section class="about-hero">
-  <span class="about-pill"><i class="fa-solid fa-leaf"></i> Sustainable Future</span>
   <h1>Driving Nepal's <span>Electric</span> Journey Forward</h1>
   <p>ChargeHub Nepal is on a mission to make electric vehicle charging accessible, reliable, and seamless across every district, accelerating the nation's transition to green energy.</p>
   <div class="about-hero-media">
