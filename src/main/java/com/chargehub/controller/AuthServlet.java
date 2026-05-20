@@ -1,6 +1,6 @@
 package com.chargehub.controller;
 
-import com.chargehub.dao.UserDAO;
+import com.chargehub.dao.UserDAO;import com.chargehub.model.User;import com.chargehub.util.PasswordUtil;import com.chargehub.util.ValidationUtil;
 import jakarta.servlet.*;import jakarta.servlet.annotation.WebServlet;import jakarta.servlet.http.*;import java.io.IOException;
 
 @WebServlet({"/login","/register","/logout"})
@@ -91,5 +91,5 @@ public class AuthServlet extends HttpServlet {
   User u=new User(); u.setFullName(fullName);u.setEmail(email);u.setPhone(phone);u.setPasswordHash(PasswordUtil.hashPassword(password));u.setVehicleNumber(request.getParameter("vehicleNumber"));u.setAddress(request.getParameter("address"));u.setRole("user");u.setStatus("active");
   boolean ok=userDAO.register(u); request.setAttribute(ok?"success":"error", ok?"Registration successful. Please login.":"Registration failed. Email or phone may already exist."); forward(request,response, ok?"public/login.jsp":"public/register.jsp");
  }
- private void forward(HttpServletRequest request,HttpServletResponse response,String page)throws ServletException,IOException{request.getRequestDispatcher("/WEB-INF/views/"+page).forward(request,response);} 
+ private void forward(HttpServletRequest request,HttpServletResponse response,String page)throws ServletException,IOException{request.getRequestDispatcher("/WEB-INF/views/"+page).forward(request,response);}
 }

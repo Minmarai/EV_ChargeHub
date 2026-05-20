@@ -3,14 +3,18 @@ package com.chargehub.controller;
 import com.chargehub.dao.BookingDAO;
 import com.chargehub.dao.ContactDAO;
 import com.chargehub.dao.DistrictDAO;
+import com.chargehub.dao.PaymentDAO;
 import com.chargehub.dao.ReviewDAO;
 import com.chargehub.dao.SlotDAO;
 import com.chargehub.dao.StationDAO;
 import com.chargehub.dao.UserDAO;
 import com.chargehub.model.Booking;
+import com.chargehub.model.Payment;
 import com.chargehub.model.Slot;
 import com.chargehub.model.Station;
+import com.chargehub.model.User;
 import com.chargehub.util.DBConnection;
+import com.chargehub.util.PasswordUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -57,7 +61,7 @@ import java.util.Set;
  *   <li>GET  /admin/reports      - Analytics reports with period/district/station filters</li>
  * </ul>
  *
- * @author Minma Rai IIC
+ * @author Minma Rai
  */
 @WebServlet("/admin/*")
 public class AdminServlet extends HttpServlet {
