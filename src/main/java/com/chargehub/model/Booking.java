@@ -2,7 +2,7 @@ package com.chargehub.model;
 import java.math.BigDecimal; import java.sql.Timestamp;
 
 /**
- * Author: Kirti Dahal
+ * Author: Kirti Dahal, IIC Java Hackerzz
  */
 public class Booking {
     private int bookingId,userId,stationId,slotId; private String userName,userPhone,stationName,managerName,vehicleNumber,bookingStatus,slotInfo,notes,paymentStatus; private Timestamp bookingDate; private BigDecimal amount;
