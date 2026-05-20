@@ -36,7 +36,7 @@
             <div class="admin-edit-user-title">
                 <a class="admin-back-btn" href="${pageContext.request.contextPath}/admin/users"><i class="fa-solid fa-arrow-left"></i></a>
                 <div>
-                    <h1>Edit User #CH-${empty resolvedUserId ? '--' : resolvedUserId}</h1>
+                    <h1>Edit User-${empty resolvedUserId ? '--' : resolvedUserId}</h1>
                     <p>Modify user credentials and account permissions.</p>
                 </div>
             </div>
