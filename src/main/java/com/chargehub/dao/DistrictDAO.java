@@ -21,7 +21,7 @@ import java.util.*;
  * <p>This DAO is read-only by design. No insert, update, or delete
  * operations are exposed, as districts are treated as reference/lookup data.</p>
  *
- * <p>Author: Kirti Dahal</p>
+ * <p>Author: Kirti Dahal, IIC Java Hackerzz</p>
  *
  * @see District
  */
