@@ -22,6 +22,8 @@ import org.mindrot.jbcrypt.BCrypt;
  * // On login:
  * boolean valid = PasswordUtil.checkPassword(plainTextPassword, storedHash);
  * }</pre>
+ *
+ * <p>Author: Denisha Tamang</p>
  */
 public class PasswordUtil {
 

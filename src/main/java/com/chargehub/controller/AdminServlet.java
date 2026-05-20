@@ -11,7 +11,6 @@ import com.chargehub.model.Booking;
 import com.chargehub.model.Slot;
 import com.chargehub.model.Station;
 import com.chargehub.util.DBConnection;
-import com.chargehub.util.PasswordUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
