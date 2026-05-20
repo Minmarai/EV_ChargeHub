@@ -1,7 +1,7 @@
 package com.chargehub.model;
 
 /**
- * Author: Kirti Dahal
+ * Author: Kirti Dahal, IIC Java Hackerzz
  */
 public class District {
     private int districtId; private String districtName;
