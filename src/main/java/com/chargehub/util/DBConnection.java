@@ -19,7 +19,7 @@ import java.sql.DriverManager;
  * For production use, consider replacing this with a pooled data source
  * such as HikariCP or Apache DBCP to improve performance and resource management.</p>
  *
- * <p>Author: Minma Rai</p>
+ * <p>Author: Minma Rai IIC</p>
  */
 public class DBConnection {
 
