@@ -1,7 +1,6 @@
 package com.chargehub.controller;
 
 import com.chargehub.dao.UserDAO;
-import com.chargehub.util.ValidationUtil;
 import jakarta.servlet.*;import jakarta.servlet.annotation.WebServlet;import jakarta.servlet.http.*;import java.io.IOException;
 
 @WebServlet({"/login","/register","/logout"})
