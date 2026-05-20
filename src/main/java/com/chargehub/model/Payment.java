@@ -1,5 +1,9 @@
 package com.chargehub.model;
 import java.math.BigDecimal; import java.sql.Timestamp;
+
+/**
+ * Author: Denisha Tamang
+ */
 public class Payment {
     private int paymentId, bookingId, userId; private BigDecimal amount; private String paymentMethod,paymentStatus,transactionReference,remarks,userName,stationName; private Timestamp paymentDate;
     public int getPaymentId(){return paymentId;} public void setPaymentId(int paymentId){this.paymentId=paymentId;}

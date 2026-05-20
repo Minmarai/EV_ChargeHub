@@ -1,7 +1,6 @@
 package com.chargehub.controller;
 
 import com.chargehub.dao.UserDAO;
-import com.chargehub.model.Payment;
 import com.chargehub.model.User;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;

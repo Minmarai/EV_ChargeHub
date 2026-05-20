@@ -8,7 +8,6 @@ import com.chargehub.dao.SlotDAO;
 import com.chargehub.dao.StationDAO;
 import com.chargehub.dao.UserDAO;
 import com.chargehub.model.Booking;
-import com.chargehub.model.Payment;
 import com.chargehub.model.Slot;
 import com.chargehub.model.Station;
 import com.chargehub.model.User;
