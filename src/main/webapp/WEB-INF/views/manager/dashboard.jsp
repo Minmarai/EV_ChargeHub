@@ -114,3 +114,12 @@
 </div>
 </body>
 </html>
+
+
+@media (max-width: 768px) {
+
+.manager-content {
+margin-left: 0;
+padding: 20px;
+}
+}
