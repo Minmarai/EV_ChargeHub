@@ -1,5 +1,9 @@
 package com.chargehub.controller;
 
+import com.chargehub.dao.ContactDAO;
+import com.chargehub.dao.DistrictDAO;
+import com.chargehub.dao.StationDAO;
+import com.chargehub.dao.UserDAO;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
@@ -22,6 +26,8 @@ import java.io.IOException;
  *
  * <p>No authentication or session checks are performed in this servlet —
  * all mapped routes are intentionally accessible without login.</p>
+ *
+ * <p>Author: Denisha Tamang</p>
  */
 @WebServlet({"/home", "/about", "/contact", "/error"})
 public class PublicServlet extends HttpServlet {
@@ -53,8 +59,13 @@ public class PublicServlet extends HttpServlet {
          throws ServletException, IOException {
   String path = request.getServletPath();
   if (path.equals("/") || path.equals("/home")) {
-   request.setAttribute("stations", new StationDAO().findAll());
-   forward(request, response, "public/home.jsp");
+    StationDAO stationDAO = new StationDAO();
+    UserDAO userDAO = new UserDAO();
+    request.setAttribute("stations", stationDAO.findAll());
+    request.setAttribute("districtCount", new DistrictDAO().count());
+    request.setAttribute("activeStationCount", stationDAO.countByStatus("active"));
+    request.setAttribute("happyOwnerCount", userDAO.countActiveEvOwners());
+    forward(request, response, "public/home.jsp");
   } else if (path.equals("/about")) {
    forward(request, response, "public/about.jsp");
   } else if (path.equals("/contact")) {
