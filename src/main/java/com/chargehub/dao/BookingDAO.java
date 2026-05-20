@@ -13,7 +13,7 @@ import java.util.*;
  * <p>All database interactions use {@link DBConnection#getConnection()} to
  * obtain connections, which are closed automatically via try-with-resources.</p>
  *
- * <p>Author: Kirti Dahal</p>
+ * <p>Author: Kirti Dahal, IIC Java Hackerzz</p>
  */
 public class BookingDAO {
 
