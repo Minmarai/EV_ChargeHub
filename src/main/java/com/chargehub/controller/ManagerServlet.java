@@ -23,7 +23,7 @@ import java.util.Map;
 
 @WebServlet("/station-manager/*")
 /**
- * Author: Imtiyaz Ansari
+ * Author: Imtiyaz Ansari IIC
  */
 public class ManagerServlet extends HttpServlet {
     private int uid(HttpServletRequest request) {
