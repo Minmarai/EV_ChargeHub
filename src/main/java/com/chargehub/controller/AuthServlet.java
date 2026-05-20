@@ -4,6 +4,9 @@ import com.chargehub.dao.UserDAO;import com.chargehub.model.User;import com.char
 import jakarta.servlet.*;import jakarta.servlet.annotation.WebServlet;import jakarta.servlet.http.*;import java.io.IOException;
 
 @WebServlet({"/login","/register","/logout"})
+/**
+ * Author: Denisha Tamang
+ */
 public class AuthServlet extends HttpServlet {
  private final UserDAO userDAO=new UserDAO();
  protected void doGet(HttpServletRequest request,HttpServletResponse response)throws ServletException,IOException{
