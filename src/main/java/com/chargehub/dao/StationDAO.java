@@ -18,7 +18,7 @@ import java.util.*;
  * <p>All database connections are obtained via {@link DBConnection#getConnection()}
  * and are closed automatically using try-with-resources.</p>
  *
- * <p>Author: Imtiyaz Ansari</p>
+ * <p>Author: Imtiyaz Ansari IIC </p>
  */
 public class StationDAO {
 
