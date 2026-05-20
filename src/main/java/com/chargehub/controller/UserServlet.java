@@ -15,7 +15,7 @@ import java.util.Set;
 
 @WebServlet("/user/*")
 /**
- * Author: Kirti Dahal
+ * Author: Kirti Dahal, IIC Java Hackerzz
  */
 public class UserServlet extends HttpServlet {
  private int uid(HttpServletRequest r){return (int)r.getSession().getAttribute("userId");}
