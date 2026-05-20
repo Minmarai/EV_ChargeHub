@@ -10,7 +10,6 @@ import com.chargehub.dao.UserDAO;
 import com.chargehub.model.Booking;
 import com.chargehub.model.Slot;
 import com.chargehub.model.Station;
-import com.chargehub.model.User;
 import com.chargehub.util.DBConnection;
 import com.chargehub.util.PasswordUtil;
 import jakarta.servlet.ServletException;

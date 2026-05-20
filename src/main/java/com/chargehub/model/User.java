@@ -1,5 +1,8 @@
 package com.chargehub.model;
 
+/**
+ * Author: Denisha Tamang
+ */
 public class User {
     private int userId;
     private String fullName;
