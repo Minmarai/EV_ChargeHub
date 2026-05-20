@@ -4,7 +4,7 @@ import jakarta.servlet.*;import jakarta.servlet.annotation.WebFilter;import jaka
 
 @WebFilter({"/user/*","/station-manager/*","/admin/*"})
 /**
- * Author: Minma Rai
+ * Author: Minma Rai IIC
  */
 public class AuthFilter implements Filter {
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
