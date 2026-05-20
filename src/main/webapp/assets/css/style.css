@@ -4688,12 +4688,11 @@ th {
     margin: 0;
     display: inline-block;
     vertical-align: middle;
-}
-gap: 6px;
-font-size: 13px;
-font-weight: 600;
-font-family: inherit;
-text-decoration: none;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    text-decoration: none;
 }
 
 .booking-actions a:hover,
