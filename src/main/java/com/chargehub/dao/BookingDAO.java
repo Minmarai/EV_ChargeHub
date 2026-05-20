@@ -1,5 +1,6 @@
 package com.chargehub.dao;
 
+import com.chargehub.model.Booking;
 import com.chargehub.util.DBConnection;
 import java.sql.*;
 import java.util.*;
@@ -13,7 +14,7 @@ import java.util.*;
  * <p>All database interactions use {@link DBConnection#getConnection()} to
  * obtain connections, which are closed automatically via try-with-resources.</p>
  *
- * <p>Author: Kirti Dahal, IIC Java Hackerzz</p>
+ * <p>Author: Kirti Dahal</p>
  */
 public class BookingDAO {
 

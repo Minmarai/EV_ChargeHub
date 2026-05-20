@@ -1,5 +1,6 @@
 package com.chargehub.dao;
 
+import com.chargehub.model.Station;
 import com.chargehub.util.DBConnection;
 import java.math.BigDecimal;
 import java.sql.*;
@@ -18,7 +19,7 @@ import java.util.*;
  * <p>All database connections are obtained via {@link DBConnection#getConnection()}
  * and are closed automatically using try-with-resources.</p>
  *
- * <p>Author: Imtiyaz Ansari IIC </p>
+ * <p>Author: Imtiyaz Ansari</p>
  */
 public class StationDAO {
 
@@ -452,4 +453,3 @@ public class StationDAO {
         return 0;
     }
 }
-

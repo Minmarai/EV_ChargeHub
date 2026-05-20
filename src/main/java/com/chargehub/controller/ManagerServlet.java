@@ -1,8 +1,15 @@
 package com.chargehub.controller;
 
-import com.chargehub.dao.*;
+import com.chargehub.dao.BookingDAO;
+import com.chargehub.dao.DistrictDAO;
+import com.chargehub.dao.PaymentDAO;
+import com.chargehub.dao.SlotDAO;
+import com.chargehub.dao.StationDAO;
+import com.chargehub.dao.UserDAO;
 import com.chargehub.model.Booking;
 import com.chargehub.model.Payment;
+import com.chargehub.model.Slot;
+import com.chargehub.model.Station;
 import com.chargehub.model.User;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -23,7 +30,7 @@ import java.util.Map;
 
 @WebServlet("/station-manager/*")
 /**
- * Author: Imtiyaz Ansari IIC
+ * Author: Imtiyaz Ansari
  */
 public class ManagerServlet extends HttpServlet {
     private int uid(HttpServletRequest request) {
@@ -340,8 +347,8 @@ public class ManagerServlet extends HttpServlet {
             s.setContactNumber("");
             s.setChargerType("Type 2");
             s.setTotalPorts(2);
-            s.setOpeningTime(Time.valueOf("06:00:00"));
-            s.setClosingTime(Time.valueOf("22:00:00"));
+            s.setOpeningTime(java.sql.Time.valueOf("06:00:00"));
+            s.setClosingTime(java.sql.Time.valueOf("22:00:00"));
             s.setPricePerHour(new BigDecimal("100"));
             s.setStatus("inactive");
             new StationDAO().save(s);
@@ -442,7 +449,7 @@ public class ManagerServlet extends HttpServlet {
     private void loadDashboardData(HttpServletRequest request, int managerId, StationDAO stationDAO) {
         BookingDAO bookingDAO = new BookingDAO();
         PaymentDAO paymentDAO = new PaymentDAO();
-        
+
         bookingDAO.syncCompletedFromPayments(managerId);
 
         List<Booking> managerBookings = bookingDAO.findByManager(managerId);
@@ -484,7 +491,3 @@ public class ManagerServlet extends HttpServlet {
         return escaped;
     }
 }
-
-
-
-

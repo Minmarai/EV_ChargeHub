@@ -1,5 +1,6 @@
 package com.chargehub.dao;
 
+import com.chargehub.model.Slot;
 import com.chargehub.util.DBConnection;
 import java.sql.*;
 import java.util.*;
@@ -16,7 +17,7 @@ import java.util.*;
  * <p>All database connections are obtained via {@link DBConnection#getConnection()}
  * and are closed automatically using try-with-resources.</p>
  *
- * <p>Author: Imtiyaz Ansari IIC</p>
+ * <p>Author: Imtiyaz Ansari</p>
  */
 public class SlotDAO {
 
@@ -335,4 +336,3 @@ public class SlotDAO {
   return 0;
  }
 }
-

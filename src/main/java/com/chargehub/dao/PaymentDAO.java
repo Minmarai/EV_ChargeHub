@@ -1,5 +1,6 @@
 package com.chargehub.dao;
 
+import com.chargehub.model.Payment;
 import com.chargehub.util.DBConnection;
 import java.sql.*;
 import java.math.BigDecimal;
