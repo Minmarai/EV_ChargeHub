@@ -1,4 +1,5 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%-- Author: Denisha Tamang --%>
 <!DOCTYPE html>
 <html>
 <head>
@@ -11,7 +12,6 @@
 <section class="home-hero">
   <div class="hero-mark"><i class="fa-solid fa-bolt"></i></div>
   <div class="hero-inner">
-    <span class="hero-pill"><i class="fa-solid fa-bolt"></i> Powering Nepal's EV Future</span>
     <h1>Find &amp; Book EV Charging Stations <span>Across Nepal</span></h1>
     <p>ChargeHub Nepal is your reliable platform to locate available charging slots, reserve your spot, and travel with confidence across all districts.</p>
     <div class="hero-actions">
@@ -20,10 +20,10 @@
       <a class="btn secondary" href="${pageContext.request.contextPath}/register">Register</a>
     </div>
     <div class="hero-stats">
-      <div><strong>77+</strong><span>Districts Covered</span></div>
-      <div><strong>500+</strong><span>Active Stations</span></div>
+      <div><strong>${districtCount}</strong><span>Districts Covered</span></div>
+      <div><strong>${activeStationCount}</strong><span>Active Stations</span></div>
       <div><strong>24/7</strong><span>Support Available</span></div>
-      <div><strong>10k+</strong><span>Happy EV Owners</span></div>
+      <div><strong>${happyOwnerCount}</strong><span>Happy EV Owners</span></div>
     </div>
   </div>
 </section>
@@ -57,7 +57,6 @@
 
 <section class="home-about">
   <div class="about-copy">
-    <p class="micro"><i class="fa-regular fa-clock"></i> The Future Is Now</p>
     <h2>Accelerating Nepal's Transition to Sustainable Mobility</h2>
     <p>As Nepal moves towards a greener future, reliable EV infrastructure is paramount. ChargeHub Nepal bridges the gap between EV owners and charging stations, providing a centralized, easy-to-use platform that removes range anxiety and simplifies the charging experience.</p>
     <p>Whether you are commuting within Kathmandu or planning a road trip to Pokhara, we ensure you stay powered up and connected.</p>
@@ -65,13 +64,6 @@
   </div>
   <div class="about-visual">
     <img class="about-photo" src="https://cdn.prod.website-files.com/5ec85520c4dfff034b036be2/68d711fb2101e287bf7b6224_Hyundia-EV-parked-%20hero.webp" alt="Electric car charging at a station" loading="lazy" referrerpolicy="no-referrer">
-    <div class="station-chip">
-      <span><i class="fa-solid fa-bolt"></i></span>
-      <div>
-        <strong>Station 42, Lalitpur</strong>
-        <small>2 Slots Available Now</small>
-      </div>
-    </div>
   </div>
 </section>
 
