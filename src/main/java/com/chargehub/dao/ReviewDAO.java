@@ -15,6 +15,8 @@ import java.util.*;
  *
  * <p>All database connections are obtained via {@link DBConnection#getConnection()}
  * and are closed automatically using try-with-resources.</p>
+ *
+ * <p>Author: Rijam Shrestha</p>
  */
 public class ReviewDAO {
 
@@ -69,19 +71,56 @@ public class ReviewDAO {
  }
 
  /**
+  * Retrieves all reviews submitted by a specific user across all stations,
+  * ordered by review ID descending.
+  *
+  * <p>Unlike {@link #findByStation(int)}, this method returns reviews of
+  * <em>all</em> statuses (e.g., {@code "visible"}, {@code "hidden"}),
+  * making it suitable for user profile pages or account history views
+  * where the user should see their own full review history.</p>
+  *
+  * <p>Typical map keys include: {@code review_id}, {@code user_id}, {@code station_id},
+  * {@code rating}, {@code comment}, {@code status}, {@code full_name},
+  * {@code station_name}.</p>
+  *
+  * @param userId the ID of the user whose reviews are to be retrieved
+  * @return a {@link List} of {@link Map} objects representing all reviews by the
+  *         given user; returns an empty list if none exist or an error occurs
+  */
+ public List<Map<String, Object>> findByUser(int userId) {
+  return query(
+          "SELECT r.*, u.full_name, s.station_name " +
+                  "FROM reviews r " +
+                  "JOIN users u ON r.user_id = u.user_id " +
+                  "JOIN stations s ON r.station_id = s.station_id " +
+                  "WHERE r.user_id=" + userId + " " +
+                  "ORDER BY r.review_id DESC"
+  );
+ }
+
+ /**
   * Executes a raw SQL query and maps each resulting row to a {@link Map}.
   *
   * <p>Column names are derived dynamically from
-  * {@link java.sql.ResultSetMetaData#getColumnLabel(int)}, so the returned
+  * {@link ResultSetMetaData#getColumnLabel(int)}, so the returned
   * map keys reflect the actual column labels in the query result.</p>
   *
-  * <p><strong>Note:</strong> This method executes the provided SQL string directly
-  * without parameterization. Callers must ensure the SQL is safe to prevent
-  * SQL injection vulnerabilities.</p>
+  * <p><strong>Warning — SQL Injection Risk:</strong> Although this method uses
+  * {@link PreparedStatement} internally, the SQL string is passed in fully
+  * pre-assembled and is <em>not</em> parameterized at this level. Any dynamic
+  * values (e.g., {@code stationId}, {@code userId}) are interpolated by callers
+  * via string concatenation before being passed here. Callers such as
+  * {@link #findByStation(int)} and {@link #findByUser(int)} must therefore
+  * ensure their inputs are validated or sanitized to prevent SQL injection.</p>
   *
-  * @param sql the SQL query string to execute
-  * @return a {@link List} of {@link Map} objects where each map represents one row;
-  *         returns an empty list on error or if no rows are returned
+  * <p><strong>Recommended fix:</strong> Refactor callers to pass bind parameters
+  * separately, and update this method to accept an {@code Object[]} varargs
+  * parameter for safe value binding via {@link PreparedStatement#setObject(int, Object)}.</p>
+  *
+  * @param sql the fully assembled SQL query string to execute; must not contain
+  *            unsanitized user-supplied values
+  * @return a {@link List} of {@link Map} objects where each map represents one row,
+  *         keyed by column label; returns an empty list on error or if no rows match
   */
  private List<Map<String, Object>> query(String sql) {
   List<Map<String, Object>> list = new ArrayList<>();

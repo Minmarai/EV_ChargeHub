@@ -1,6 +1,5 @@
 package com.chargehub.dao;
 
-import com.chargehub.model.Payment;
 import com.chargehub.util.DBConnection;
 import java.sql.*;
 import java.math.BigDecimal;
@@ -17,6 +16,8 @@ import java.util.*;
  *
  * <p>All database connections are obtained via {@link DBConnection#getConnection()}
  * and are closed automatically using try-with-resources.</p>
+ *
+ * <p>Author: Denisha Tamang</p>
  */
 public class PaymentDAO {
 
@@ -103,6 +104,24 @@ public class PaymentDAO {
   */
  public List<Payment> findByUser(int userId) {
   return query(base + " WHERE p.user_id=" + userId + " ORDER BY p.payment_id DESC");
+ }
+
+ public List<String> findStatusesByUser(int userId) {
+  List<String> list = new ArrayList<>();
+  String sql = "SELECT DISTINCT LOWER(TRIM(payment_status)) payment_status FROM payments " +
+          "WHERE user_id=? AND payment_status IS NOT NULL AND TRIM(payment_status)<>'' " +
+          "ORDER BY CASE LOWER(TRIM(payment_status)) " +
+          "WHEN 'paid' THEN 1 WHEN 'pending' THEN 2 WHEN 'failed' THEN 3 WHEN 'refunded' THEN 4 ELSE 5 END, " +
+          "LOWER(TRIM(payment_status))";
+  try (Connection c = DBConnection.getConnection();
+       PreparedStatement ps = c.prepareStatement(sql)) {
+   ps.setInt(1, userId);
+   ResultSet rs = ps.executeQuery();
+   while (rs.next()) list.add(rs.getString("payment_status"));
+  } catch (SQLException e) {
+   e.printStackTrace();
+  }
+  return list;
  }
 
  /**

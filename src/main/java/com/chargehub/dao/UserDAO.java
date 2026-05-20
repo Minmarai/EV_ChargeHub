@@ -1,6 +1,5 @@
 package com.chargehub.dao;
 
-import com.chargehub.model.User;
 import com.chargehub.util.DBConnection;
 import java.sql.*;
 import java.util.*;

@@ -4,6 +4,7 @@
 <html>
 <head>
   <title>Manage Payments</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
 </head>
 <body class="manager-dashboard-page manager-payments-page">
@@ -80,10 +81,10 @@
         <tbody id="paymentsTableBody">
         <c:forEach var="p" items="${payments}">
           <tr
-            data-search="pay-${p.paymentId} bkg-${p.bookingId} ${fn:toLowerCase(p.userName)}"
-            data-date="${fn:substring(p.paymentDate,0,10)}"
-            data-method="${fn:toLowerCase(p.paymentMethod)}"
-            data-status="${fn:toLowerCase(p.paymentStatus)}">
+                  data-search="pay-${p.paymentId} bkg-${p.bookingId} ${fn:toLowerCase(p.userName)}"
+                  data-date="${fn:substring(p.paymentDate,0,10)}"
+                  data-method="${fn:toLowerCase(p.paymentMethod)}"
+                  data-status="${fn:toLowerCase(p.paymentStatus)}">
             <td>
               <strong>PAY-${p.paymentId}</strong>
               <div class="payment-sub">${p.paymentDate}</div>
@@ -96,28 +97,17 @@
             <td>
               <div class="payment-actions">
                 <a href="${pageContext.request.contextPath}/station-manager/payment?id=${p.paymentId}" title="View Details"><i class="fa-regular fa-eye"></i></a>
-                <form method="post">
+                <form method="post" action="${pageContext.request.contextPath}/station-manager/payments">
                   <input type="hidden" name="action" value="paymentStatus">
                   <input type="hidden" name="paymentId" value="${p.paymentId}">
                   <input type="hidden" name="status" value="paid">
                   <button type="submit" class="success" title="Mark Paid"><i class="fa-solid fa-check"></i></button>
                 </form>
-                <form method="post">
+                <form method="post" action="${pageContext.request.contextPath}/station-manager/payments">
                   <input type="hidden" name="action" value="paymentStatus">
                   <input type="hidden" name="paymentId" value="${p.paymentId}">
                   <input type="hidden" name="status" value="failed">
                   <button type="submit" class="danger" title="Mark Failed"><i class="fa-solid fa-xmark"></i></button>
-                </form>
-                <form method="post" class="payment-update-form">
-                  <input type="hidden" name="action" value="paymentStatus">
-                  <input type="hidden" name="paymentId" value="${p.paymentId}">
-                  <select name="status">
-                    <option value="paid">paid</option>
-                    <option value="pending">pending</option>
-                    <option value="failed">failed</option>
-                    <option value="refunded">refunded</option>
-                  </select>
-                  <button type="submit" title="Update Status"><i class="fa-solid fa-rotate"></i></button>
                 </form>
               </div>
             </td>
@@ -159,10 +149,10 @@
         const rowMethod = row.dataset.method || "";
         const rowStatus = row.dataset.status || "";
         const show =
-          (!search || rowSearch.includes(search)) &&
-          (!date || rowDate === date) &&
-          (!method || rowMethod === method) &&
-          (!status || rowStatus === status);
+                (!search || rowSearch.includes(search)) &&
+                (!date || rowDate === date) &&
+                (!method || rowMethod === method) &&
+                (!status || rowStatus === status);
         row.style.display = show ? "" : "none";
         if (show) visible++;
       });

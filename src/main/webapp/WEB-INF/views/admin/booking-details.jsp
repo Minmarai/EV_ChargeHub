@@ -1,1 +1,2 @@
+<%-- Author: Rijam Shrestha --%>
 <html><head><title>Booking Details</title><link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css"></head><body><div class="layout"><jsp:include page="../common/admin-sidebar.jsp"/><main class="main"><div class="card"><h1>Booking #${booking.bookingId}</h1><p>User: ${booking.userName}</p><p>Station: ${booking.stationName}</p><p>Slot: ${booking.slotInfo}</p><p>Vehicle: ${booking.vehicleNumber}</p><p>Status: ${booking.bookingStatus}</p><p>Payment: ${booking.paymentStatus}</p></div></main></div></body></html>

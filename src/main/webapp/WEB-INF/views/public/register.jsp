@@ -1,7 +1,9 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%-- Author: Denisha Tamang --%>
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Register - ChargeHub Nepal</title>
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
 </head>

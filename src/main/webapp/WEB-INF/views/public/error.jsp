@@ -1,3 +1,4 @@
+<%-- Author: Denisha Tamang --%>
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,7 +8,7 @@
 <body class="error-page">
 <main class="error-shell">
   <a class="error-brand" href="${pageContext.request.contextPath}/home">
-    <span class="brand-icon"><i class="fa-solid fa-bolt"></i></span>
+    <span class="brand-icon" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span>
     <span>ChargeHub Nepal</span>
   </a>
 

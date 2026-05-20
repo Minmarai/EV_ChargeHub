@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%-- Author: Rijam Shrestha --%>
 <html>
 <head>
   <title>Manage Bookings</title>
@@ -51,26 +52,6 @@
       display: flex;
       align-items: center;
       gap: 10px;
-    }
-
-    .btn-export {
-      height: 38px;
-      padding: 0 16px;
-      border-radius: 10px;
-      border: 1px solid #D1D5DB;
-      background: #fff;
-      color: #374151;
-      font-weight: 600;
-      font-size: 13px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      font-family: inherit;
-    }
-    .btn-export:hover {
-      border-color: #9CA3AF;
-      background: #F9FAFB;
     }
 
     .btn-refresh {
@@ -633,8 +614,6 @@
         <strong>Manage Bookings</strong>
       </div>
       <div class="admin-topbar-actions">
-        <label class="admin-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search bookings, payments, or users..."></label>
-        <i class="fa-regular fa-bell"></i>
         <div class="admin-user-chip">
           <div><strong>Admin User</strong><small>Super Administrator</small></div>
           <span>A</span>
@@ -646,15 +625,14 @@
     <section class="bookings-header">
       <h1>Manage Bookings</h1>
       <div class="bookings-header-actions">
-        <button class="btn-export" type="button"><i class="fa-solid fa-file-export"></i> Export CSV</button>
         <a class="btn-refresh" href="${pageContext.request.contextPath}/admin/bookings"><i class="fa-solid fa-arrow-rotate-right"></i></a>
-        <a class="btn-create" href="${pageContext.request.contextPath}/admin/booking"><i class="fa-solid fa-plus"></i> Create Booking</a>
       </div>
     </section>
 
     <!-- Filter card -->
     <section class="bookings-filter-card">
       <form method="get" action="${pageContext.request.contextPath}/admin/bookings">
+        <input type="hidden" name="pageSize" value="${pageSize}">
         <div class="bookings-filter-row">
           <!-- Station -->
           <div class="filter-group">
@@ -747,23 +725,23 @@
             <td>
               <div class="station-cell">
                 <i class="fa-solid fa-location-dot"></i>
-                <span>${b.stationName}</span>
+                <span>${empty b.stationName ? '-' : b.stationName}</span>
               </div>
             </td>
             <td>
               <div class="slot-duration">
-                <div class="slot-date"><i class="fa-regular fa-calendar"></i> ${empty b.bookingDate ? '-' : b.bookingDate}</div>
-                <div class="slot-time">${empty b.slotInfo ? '' : b.slotInfo}</div>
+                <div class="slot-date"><i class="fa-regular fa-calendar"></i> ${empty b.bookingDate ? '-' : fn:substringBefore(b.bookingDate, ' ')}</div>
+                <div class="slot-time">${empty b.slotInfo ? '-' : b.slotInfo}</div>
               </div>
             </td>
             <td>
               <div class="payment-cell">
-                <div class="amount">${empty b.totalAmount ? '-' : 'Rs. '}${empty b.totalAmount ? '' : b.totalAmount}</div>
+                <div class="amount">${empty b.amount ? '-' : 'Rs. '}${empty b.amount ? '' : b.amount}</div>
                 <div class="pay-status ${fn:toLowerCase(empty b.paymentStatus ? '' : b.paymentStatus)}">${empty b.paymentStatus ? '-' : fn:toUpperCase(b.paymentStatus)}</div>
               </div>
             </td>
             <td>
-              <span class="status-pill ${b.bookingStatus}">${b.bookingStatus}</span>
+              <span class="status-pill ${empty b.bookingStatus ? 'pending' : b.bookingStatus}">${empty b.bookingStatus ? 'pending' : b.bookingStatus}</span>
             </td>
             <td>
               <div class="manager-cell">
@@ -773,18 +751,11 @@
             </td>
             <td>
               <div class="table-actions">
-                <a class="icon-action" title="View Details" href="${pageContext.request.contextPath}/admin/booking?id=${b.bookingId}"><i class="fa-regular fa-eye"></i></a>
+                <a class="icon-action" title="View" href="${pageContext.request.contextPath}/admin/booking?id=${b.bookingId}"><i class="fa-regular fa-eye"></i></a>
                 <form method="post" style="display:inline">
-                  <input type="hidden" name="action" value="bookingStatus">
+                  <input type="hidden" name="action" value="deleteBooking">
                   <input type="hidden" name="bookingId" value="${b.bookingId}">
-                  <input type="hidden" name="status" value="cancelled">
-                  <button class="icon-action" title="Cancel Booking"><i class="fa-solid fa-xmark"></i></button>
-                </form>
-                <form method="post" style="display:inline">
-                  <input type="hidden" name="action" value="bookingStatus">
-                  <input type="hidden" name="bookingId" value="${b.bookingId}">
-                  <input type="hidden" name="status" value="completed">
-                  <button class="icon-action" title="Mark Completed"><i class="fa-solid fa-check"></i></button>
+                  <button type="submit" class="icon-action" title="Delete" onclick="return confirm('Delete this booking?');"><i class="fa-solid fa-trash-can"></i></button>
                 </form>
               </div>
             </td>
@@ -798,16 +769,13 @@
         </tbody>
       </table>
       <div class="table-footer">
-        <span class="showing-text">Showing 1-${bookingsCount} of ${bookingsCount} bookings</span>
+        <span class="showing-text">Showing ${bookingsFrom}-${bookingsTo} of ${bookingsFilteredCount} bookings</span>
         <div class="pagination">
-          <a href="#"><i class="fa-solid fa-chevron-left"></i></a>
-          <a class="active-page" href="#">1</a>
-          <c:if test="${bookingsCount > 5}">
-            <a href="#">2</a>
-            <span class="ellipsis">...</span>
-            <a href="#">${(bookingsCount / 5) + 1}</a>
-          </c:if>
-          <a href="#"><i class="fa-solid fa-chevron-right"></i></a>
+          <a href="${pageContext.request.contextPath}/admin/bookings?q=${q}&stationId=${stationId}&managerId=${managerId}&bookingDate=${bookingDate}&status=${status}&pageSize=${pageSize}&page=${page - 1}" ${page <= 1 ? 'style="pointer-events:none;opacity:.5"' : ''}><i class="fa-solid fa-chevron-left"></i></a>
+          <c:forEach begin="1" end="${totalPages}" var="pNum">
+            <a class="${pNum == page ? 'active-page' : ''}" href="${pageContext.request.contextPath}/admin/bookings?q=${q}&stationId=${stationId}&managerId=${managerId}&bookingDate=${bookingDate}&status=${status}&pageSize=${pageSize}&page=${pNum}">${pNum}</a>
+          </c:forEach>
+          <a href="${pageContext.request.contextPath}/admin/bookings?q=${q}&stationId=${stationId}&managerId=${managerId}&bookingDate=${bookingDate}&status=${status}&pageSize=${pageSize}&page=${page + 1}" ${page >= totalPages ? 'style="pointer-events:none;opacity:.5"' : ''}><i class="fa-solid fa-chevron-right"></i></a>
         </div>
       </div>
     </section>

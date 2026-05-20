@@ -1,4 +1,5 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%-- Author: Denisha Tamang --%>
 <!DOCTYPE html>
 <html>
 <head>
@@ -34,7 +35,7 @@
         <div class="contact-icon"><i class="fa-solid fa-phone"></i></div>
         <div>
           <h3>Phone Support</h3>
-          <p>+977 1-4XXXXXX (Toll Free)<br>+977 98XXXXXXX (Mobile)</p>
+          <p>+977-9815672390 (Mobile)<br>+025-527189 (Telephone)</p>
         </div>
       </div>
 
@@ -64,7 +65,7 @@
       <p>Fill out the form below and our support team will get back to you within 24 hours.</p>
 
       <c:if test="${not empty success}">
-        <div class="alert success">${success}</div>
+        <div id="contact-success-alert" class="alert success">${success}</div>
       </c:if>
       <c:if test="${not empty error}">
         <div class="alert error">${error}</div>
@@ -99,5 +100,21 @@
 </section>
 
 <jsp:include page="../common/footer.jsp"/>
+<script>
+  (function () {
+    var successAlert = document.getElementById('contact-success-alert');
+    if (!successAlert) {
+      return;
+    }
+
+    successAlert.style.transition = 'opacity 0.4s ease';
+    setTimeout(function () {
+      successAlert.style.opacity = '0';
+      setTimeout(function () {
+        successAlert.remove();
+      }, 400);
+    }, 3000);
+  })();
+</script>
 </body>
 </html>

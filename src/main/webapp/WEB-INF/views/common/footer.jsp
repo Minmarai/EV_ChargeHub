@@ -1,3 +1,4 @@
+<%-- Author: Denisha Tamang --%>
 <footer class="footer">
   <div class="footer-grid">
     <div>

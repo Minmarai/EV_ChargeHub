@@ -3,14 +3,14 @@ package com.chargehub.controller;
 import com.chargehub.dao.BookingDAO;
 import com.chargehub.dao.ContactDAO;
 import com.chargehub.dao.DistrictDAO;
-import com.chargehub.dao.PaymentDAO;
 import com.chargehub.dao.ReviewDAO;
+import com.chargehub.dao.SlotDAO;
+import com.chargehub.dao.StationDAO;
 import com.chargehub.dao.UserDAO;
 import com.chargehub.model.Booking;
-import com.chargehub.model.Payment;
-import com.chargehub.model.User;
+import com.chargehub.model.Slot;
+import com.chargehub.model.Station;
 import com.chargehub.util.DBConnection;
-import com.chargehub.util.PasswordUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -35,11 +35,65 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-@WebServlet("/admin/*")
 /**
- * Author: Minma Rai
+ * AdminServlet is the central controller for all admin-panel operations in the ChargeHub application.
+ *
+ * <p>It handles GET requests for rendering various admin views (dashboard, users, managers,
+ * stations, slots, bookings, payments, reviews, messages, and reports) and POST requests
+ * for performing CRUD and status-change operations on all major entities.</p>
+ *
+ * <p>All routes are prefixed with {@code /admin/*}, mapped via {@link WebServlet}.</p>
+ *
+ * <ul>
+ *   <li>GET  /admin/dashboard    - Summary statistics and pending item counts</li>
+ *   <li>GET  /admin/users        - Paginated, filtered list of users</li>
+ *   <li>GET  /admin/managers     - List of station managers with assignment info</li>
+ *   <li>GET  /admin/stations     - List of charging stations with filtering</li>
+ *   <li>GET  /admin/slots        - List of charging slots with filtering</li>
+ *   <li>GET  /admin/bookings     - Paginated bookings with CSV export</li>
+ *   <li>GET  /admin/payments     - Paginated payments with revenue totals and CSV export</li>
+ *   <li>GET  /admin/reviews      - Paginated reviews with visibility filtering and CSV export</li>
+ *   <li>GET  /admin/messages     - Contact messages with read/unread filtering and CSV export</li>
+ *   <li>GET  /admin/reports      - Analytics reports with period/district/station filters</li>
+ * </ul>
+ *
+ * @author Minma Rai
  */
+@WebServlet("/admin/*")
 public class AdminServlet extends HttpServlet {
+
+    /**
+     * Handles all HTTP GET requests for the admin panel.
+     *
+     * <p>Routes incoming requests based on the path info segment after {@code /admin}.
+     * For each route, appropriate data is fetched from DAO layers, set as request
+     * attributes, and forwarded to the matching JSP view.</p>
+     *
+     * <p>Supported paths:</p>
+     * <ul>
+     *   <li>{@code /dashboard} — totals for users, bookings, revenue, pending reviews/messages</li>
+     *   <li>{@code /users} — paginated user list with search/filter by role and status</li>
+     *   <li>{@code /managers} — station manager list with assigned station and region info</li>
+     *   <li>{@code /user-form} — user create/edit form (pre-populated when {@code id} param provided)</li>
+     *   <li>{@code /manager-form} — manager create/edit form</li>
+     *   <li>{@code /stations} — station list with district/type/status filters</li>
+     *   <li>{@code /station-form} — station create/edit form</li>
+     *   <li>{@code /slots} — slot list with station/status/date filters and availability counts</li>
+     *   <li>{@code /slot-form} — slot create/edit form</li>
+     *   <li>{@code /bookings} — paginated booking list with multi-filter and optional CSV export</li>
+     *   <li>{@code /booking} — single booking detail view</li>
+     *   <li>{@code /payments} — paginated payment list with revenue stats and optional CSV export</li>
+     *   <li>{@code /payment} — single payment detail view with related booking and user</li>
+     *   <li>{@code /reviews} — paginated review list with visibility stats and optional CSV export</li>
+     *   <li>{@code /messages} — paginated contact message list with optional CSV export</li>
+     *   <li>{@code /reports} — analytics for a configurable date range with trend/district/station breakdown</li>
+     * </ul>
+     *
+     * @param r    the incoming {@link HttpServletRequest}
+     * @param resp the outgoing {@link HttpServletResponse}
+     * @throws ServletException if a servlet-specific error occurs during forwarding
+     * @throws IOException      if an I/O error occurs during forwarding or CSV write
+     */
     protected void doGet(HttpServletRequest r, HttpServletResponse resp) throws ServletException, IOException {
         String p = r.getPathInfo();
         if (p == null) p = "/dashboard";
@@ -49,12 +103,14 @@ public class AdminServlet extends HttpServlet {
 
         switch (p) {
             case "/dashboard":
+                // Populate summary counts for the admin dashboard overview cards.
                 r.setAttribute("userCount", ud.countByRole("user"));
                 r.setAttribute("managerCount", ud.countByRole("station_manager"));
                 r.setAttribute("stationCount", sd.count());
                 r.setAttribute("bookingCount", new BookingDAO().count());
                 r.setAttribute("totalPaid", new PaymentDAO().totalPaid());
 
+                // Count reviews with status "hidden" to surface pending moderation items.
                 List<Map<String, Object>> rv = new ReviewDAO().findAll();
                 int pendingReviews = 0;
                 for (Map<String, Object> row : rv) {
@@ -62,6 +118,7 @@ public class AdminServlet extends HttpServlet {
                     if (s != null && "hidden".equalsIgnoreCase(String.valueOf(s))) pendingReviews++;
                 }
 
+                // Count contact messages with status "unread" for the notification badge.
                 List<Map<String, Object>> msgs = new ContactDAO().findAll();
                 int pendingMessages = 0;
                 for (Map<String, Object> row : msgs) {
@@ -77,6 +134,7 @@ public class AdminServlet extends HttpServlet {
                 break;
 
             case "/users":
+                // Read filter parameters; reset clears all filters and returns to page 1.
                 String q = n(r.getParameter("q"));
                 String role = n(r.getParameter("role"));
                 String status = n(r.getParameter("status"));
@@ -91,6 +149,7 @@ public class AdminServlet extends HttpServlet {
                     userPage = 1;
                 }
 
+                // Filter users by role, status, and a multi-field keyword search.
                 List<User> filteredUsers = new ArrayList<>();
                 for (User user : ud.findAll()) {
                     if (!role.isBlank() && !role.equalsIgnoreCase(v(user.getRole()))) continue;
@@ -105,6 +164,7 @@ public class AdminServlet extends HttpServlet {
                     filteredUsers.add(user);
                 }
 
+                // Compute pagination bounds.
                 int usersTotalCount = filteredUsers.size();
                 int usersTotalPages = usersTotalCount == 0 ? 1 : (int) Math.ceil(usersTotalCount / (double) userPageSize);
                 if (userPage > usersTotalPages) userPage = usersTotalPages;
@@ -126,7 +186,9 @@ public class AdminServlet extends HttpServlet {
                 r.setAttribute("totalPages", usersTotalPages);
                 f(r, resp, "admin/users.jsp");
                 break;
+
             case "/managers":
+                // Read filter/search parameters for the manager list.
                 String mq = n(r.getParameter("q"));
                 String mStatus = n(r.getParameter("status"));
                 String mRegion = n(r.getParameter("region"));
@@ -140,6 +202,7 @@ public class AdminServlet extends HttpServlet {
                 List<User> managers = ud.findByRole("station_manager");
                 List<Station> allStations = sd.findAll();
 
+                // Count active/inactive managers for dashboard stats.
                 int activeManagers = 0;
                 int inactiveManagers = 0;
                 for (User m : managers) {
@@ -147,6 +210,7 @@ public class AdminServlet extends HttpServlet {
                     else inactiveManagers++;
                 }
 
+                // Build enriched rows that include the manager's assigned station and district.
                 List<Map<String, Object>> managerRows = new ArrayList<>();
                 for (User m : managers) {
                     Station assigned = null;
@@ -174,10 +238,12 @@ public class AdminServlet extends HttpServlet {
                     row.put("manager", m);
                     row.put("stationName", stationName);
                     row.put("region", region);
+                    // Simulated performance score derived from manager ID for demo purposes.
                     row.put("performance", String.format(Locale.ENGLISH, "%.1f", 3.5 + ((m.getUserId() % 16) / 10.0)));
                     managerRows.add(row);
                 }
 
+                // Collect distinct district names for the region filter dropdown.
                 List<String> regions = new ArrayList<>();
                 for (Station st : allStations) {
                     String d = v(st.getDistrictName());
@@ -194,15 +260,21 @@ public class AdminServlet extends HttpServlet {
                 r.setAttribute("managerRows", managerRows);
                 f(r, resp, "admin/managers.jsp");
                 break;
+
             case "/user-form":
+                // Pre-populate the form if editing an existing user.
                 if (r.getParameter("id") != null) r.setAttribute("user", ud.findById(Integer.parseInt(r.getParameter("id"))));
                 f(r, resp, "admin/user-form.jsp");
                 break;
+
             case "/manager-form":
+                // Pre-populate the form if editing an existing manager.
                 if (r.getParameter("id") != null) r.setAttribute("user", ud.findById(Integer.parseInt(r.getParameter("id"))));
                 f(r, resp, "admin/manager-form.jsp");
                 break;
+
             case "/stations":
+                // Read filter parameters for the station list.
                 String sq = n(r.getParameter("q"));
                 String sDistrict = n(r.getParameter("district"));
                 String sType = n(r.getParameter("type"));
@@ -220,6 +292,7 @@ public class AdminServlet extends HttpServlet {
                 List<String> stationDistricts = new ArrayList<>();
                 List<String> stationTypes = new ArrayList<>();
 
+                // Build filter dropdown values and apply active filters simultaneously.
                 for (Station st : allStationRows) {
                     String districtName = v(st.getDistrictName());
                     String chargerType = v(st.getChargerType());
@@ -249,17 +322,22 @@ public class AdminServlet extends HttpServlet {
                 r.setAttribute("stations", filteredStations);
                 f(r, resp, "admin/stations.jsp");
                 break;
+
             case "/station-form":
+                // Load district and manager dropdowns; pre-populate if editing.
                 r.setAttribute("districts", new DistrictDAO().findAll());
                 r.setAttribute("managers", ud.findByRole("station_manager"));
                 if (r.getParameter("id") != null) r.setAttribute("station", sd.findById(Integer.parseInt(r.getParameter("id"))));
                 f(r, resp, "admin/station-form.jsp");
                 break;
+
             case "/slots":
+                // Read filter parameters for slot listing.
                 String slotQ = n(r.getParameter("q"));
                 String stationFilter = n(r.getParameter("stationId"));
                 String statusFilter = n(r.getParameter("status"));
                 String dateFilter = n(r.getParameter("slotDate"));
+                // Normalize incoming UI status values to DB-stored values.
                 String statusFilterDb = toDbSlotStatus(statusFilter);
 
                 SlotDAO slotDAO = new SlotDAO();
@@ -282,6 +360,7 @@ public class AdminServlet extends HttpServlet {
                     filteredSlots.add(slot);
                 }
 
+                // Compute availability summary counts for the stat badges.
                 long availableCount = filteredSlots.stream()
                         .filter(s -> "available".equalsIgnoreCase(v(s.getAvailabilityStatus())))
                         .count();
@@ -304,14 +383,18 @@ public class AdminServlet extends HttpServlet {
                 r.setAttribute("maintenanceCount", maintenanceCount);
                 f(r, resp, "admin/slots.jsp");
                 break;
+
             case "/slot-form":
+                // Load station dropdown; pre-populate if editing an existing slot.
                 r.setAttribute("stations", sd.findAll());
                 if (r.getParameter("id") != null && !r.getParameter("id").isBlank()) {
                     r.setAttribute("slot", new SlotDAO().findById(Integer.parseInt(r.getParameter("id"))));
                 }
                 f(r, resp, "admin/slot-form.jsp");
                 break;
+
             case "/bookings":
+                // Read filter/search parameters for the booking list.
                 String bookingQ = n(r.getParameter("q"));
                 String bookingStationFilter = n(r.getParameter("stationId"));
                 String bookingManagerFilter = n(r.getParameter("managerId"));
@@ -328,6 +411,8 @@ public class AdminServlet extends HttpServlet {
                 List<Slot> bookingSlots = new SlotDAO().findAll();
                 List<Payment> bookingPayments = new PaymentDAO().findAll();
                 List<Booking> filteredBookings = new ArrayList<>();
+
+                // Build index maps for efficient lookups during booking enrichment.
                 Map<Integer, String> stationManagerMap = new HashMap<>();
                 Map<Integer, Station> bookingStationById = new HashMap<>();
                 Map<Integer, Slot> slotById = new HashMap<>();
@@ -346,6 +431,8 @@ public class AdminServlet extends HttpServlet {
                     paymentByBookingId.put(payment.getBookingId(), payment);
                 }
 
+                // Enrich each booking with denormalized station, manager, slot, and payment info,
+                // then apply all active filters.
                 for (Booking booking : bookingRecords) {
                     Station bookingStation = bookingStationById.get(booking.getStationId());
                     if (v(booking.getStationName()).isBlank() && bookingStation != null) {
@@ -374,6 +461,7 @@ public class AdminServlet extends HttpServlet {
 
                     if (!bookingStationFilter.isBlank() && !bookingStationFilter.equals(String.valueOf(booking.getStationId()))) continue;
 
+                    // Manager filter: resolve manager via the station relationship.
                     if (!bookingManagerFilter.isBlank()) {
                         boolean managerMatches = false;
                         for (Station managerStation : bookingStations) {
@@ -409,6 +497,7 @@ public class AdminServlet extends HttpServlet {
                     filteredBookings.add(booking);
                 }
 
+                // If CSV export is requested, stream directly and return without rendering JSP.
                 if ("csv".equalsIgnoreCase(bookingExport)) {
                     resp.setContentType("text/csv;charset=UTF-8");
                     resp.setHeader("Content-Disposition", "attachment; filename=bookings.csv");
@@ -435,6 +524,7 @@ public class AdminServlet extends HttpServlet {
                     return;
                 }
 
+                // Paginate the filtered booking results.
                 int bookingsFilteredCount = filteredBookings.size();
                 int bookingsTotalPages = bookingsFilteredCount == 0 ? 1 : (int) Math.ceil(bookingsFilteredCount / (double) bookingPageSize);
                 if (bookingPage > bookingsTotalPages) bookingPage = bookingsTotalPages;
@@ -461,11 +551,15 @@ public class AdminServlet extends HttpServlet {
                 r.setAttribute("totalPages", bookingsTotalPages);
                 f(r, resp, "admin/bookings.jsp");
                 break;
+
             case "/booking":
+                // Load a single booking's detail view.
                 r.setAttribute("booking", new BookingDAO().findById(Integer.parseInt(r.getParameter("id"))));
                 f(r, resp, "admin/booking-details.jsp");
                 break;
+
             case "/payments":
+                // Read filter parameters for the payment list.
                 String paymentQ = n(r.getParameter("q"));
                 String paymentStatusFilter = n(r.getParameter("status"));
                 String paymentMethodFilter = n(r.getParameter("method"));
@@ -479,6 +573,7 @@ public class AdminServlet extends HttpServlet {
                 List<Payment> filteredPayments = new ArrayList<>();
                 List<String> paymentMethods = new ArrayList<>();
 
+                // Accumulate per-status counts and total revenue from paid payments.
                 int paidCount = 0;
                 int pendingCount = 0;
                 int failedCount = 0;
@@ -489,6 +584,7 @@ public class AdminServlet extends HttpServlet {
                     String method = v(payment.getPaymentMethod());
                     String statusText = v(payment.getPaymentStatus());
 
+                    // Collect distinct payment methods for filter dropdown.
                     if (!method.isBlank()) {
                         boolean exists = false;
                         for (String existing : paymentMethods) {
@@ -537,6 +633,7 @@ public class AdminServlet extends HttpServlet {
                     filteredPayments.add(payment);
                 }
 
+                // Stream CSV export and return early if requested.
                 if ("csv".equalsIgnoreCase(paymentExport)) {
                     resp.setContentType("text/csv;charset=UTF-8");
                     resp.setHeader("Content-Disposition", "attachment; filename=payments.csv");
@@ -556,6 +653,7 @@ public class AdminServlet extends HttpServlet {
                     return;
                 }
 
+                // Paginate filtered payment results.
                 int paymentsFilteredCount = filteredPayments.size();
                 int paymentsTotalPages = paymentsFilteredCount == 0 ? 1 : (int) Math.ceil(paymentsFilteredCount / (double) paymentPageSize);
                 if (paymentPage > paymentsTotalPages) paymentPage = paymentsTotalPages;
@@ -585,7 +683,9 @@ public class AdminServlet extends HttpServlet {
                 r.setAttribute("paymentsRevenue", paymentsRevenue);
                 f(r, resp, "admin/payments.jsp");
                 break;
+
             case "/payment":
+                // Load a single payment detail along with its related booking and user.
                 Payment paymentRecord = new PaymentDAO().findById(Integer.parseInt(r.getParameter("id")));
                 r.setAttribute("payment", paymentRecord);
                 if (paymentRecord != null) {
@@ -594,7 +694,9 @@ public class AdminServlet extends HttpServlet {
                 }
                 f(r, resp, "admin/payment-details.jsp");
                 break;
+
             case "/reviews":
+                // Read filter parameters for the review list.
                 String reviewQ = n(r.getParameter("q"));
                 String reviewStationFilter = n(r.getParameter("station"));
                 String reviewRatingFilter = n(r.getParameter("rating"));
@@ -613,6 +715,8 @@ public class AdminServlet extends HttpServlet {
                 for (Map<String, Object> row : allReviews) {
                     Object stationObj = row.get("station_name");
                     String stationName = stationObj == null ? "" : String.valueOf(stationObj).trim();
+
+                    // Build distinct station list for filter dropdown.
                     if (!stationName.isBlank()) {
                         boolean stationExists = false;
                         for (String station : reviewStations) {
@@ -650,6 +754,7 @@ public class AdminServlet extends HttpServlet {
                     filteredReviews.add(row);
                 }
 
+                // Stream CSV export and return early if requested.
                 if ("csv".equalsIgnoreCase(reviewExport)) {
                     resp.setContentType("text/csv;charset=UTF-8");
                     resp.setHeader("Content-Disposition", "attachment; filename=reviews.csv");
@@ -668,6 +773,7 @@ public class AdminServlet extends HttpServlet {
                     return;
                 }
 
+                // Paginate filtered review results.
                 int reviewsFilteredCount = filteredReviews.size();
                 int reviewsTotalPages = reviewsFilteredCount == 0 ? 1 : (int) Math.ceil(reviewsFilteredCount / (double) reviewPageSize);
                 if (reviewPage > reviewsTotalPages) reviewPage = reviewsTotalPages;
@@ -694,7 +800,9 @@ public class AdminServlet extends HttpServlet {
                 r.setAttribute("hiddenReviews", hiddenReviews);
                 f(r, resp, "admin/reviews.jsp");
                 break;
+
             case "/messages":
+                // Read filter parameters for the contact message list.
                 String messageQ = n(r.getParameter("q"));
                 String messageStatus = n(r.getParameter("status"));
                 String messageDate = n(r.getParameter("sentDate"));
@@ -715,6 +823,7 @@ public class AdminServlet extends HttpServlet {
 
                     if (!messageStatus.isBlank() && !messageStatus.equalsIgnoreCase(rowStatus)) continue;
 
+                    // Resolve sent-date from either "created_at" or "submitted_at" column.
                     if (!messageDate.isBlank()) {
                         String sentAt = "";
                         Object createdAt = row.get("created_at");
@@ -739,6 +848,7 @@ public class AdminServlet extends HttpServlet {
                     filteredMessages.add(row);
                 }
 
+                // Stream CSV export and return early if requested.
                 if ("csv".equalsIgnoreCase(messageExport)) {
                     resp.setContentType("text/csv;charset=UTF-8");
                     resp.setHeader("Content-Disposition", "attachment; filename=messages.csv");
@@ -756,6 +866,7 @@ public class AdminServlet extends HttpServlet {
                     return;
                 }
 
+                // Paginate filtered message results.
                 int messagesFilteredCount = filteredMessages.size();
                 int messagesTotalPages = messagesFilteredCount == 0 ? 1 : (int) Math.ceil(messagesFilteredCount / (double) messagePageSize);
                 if (messagePage > messagesTotalPages) messagePage = messagesTotalPages;
@@ -780,7 +891,9 @@ public class AdminServlet extends HttpServlet {
                 r.setAttribute("readCount", readCount);
                 f(r, resp, "admin/messages.jsp");
                 break;
+
             case "/reports":
+                // Resolve the reporting period: today, 7d, 30d, ytd, or custom date range.
                 String period = n(r.getParameter("period"));
                 if (period.isBlank()) period = "30d";
                 String districtFilter = n(r.getParameter("district"));
@@ -815,6 +928,7 @@ public class AdminServlet extends HttpServlet {
                         break;
                 }
 
+                // Swap start/end if the user entered them in reverse order.
                 if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
                     LocalDate temp = rangeStart;
                     rangeStart = rangeEnd;
@@ -834,6 +948,7 @@ public class AdminServlet extends HttpServlet {
                 List<Booking> reportBookings = new BookingDAO().findAll();
                 List<Payment> reportPayments = new PaymentDAO().findAll();
 
+                // Build station lookup map and distinct district list for filter dropdown.
                 Map<Integer, Station> stationById = new HashMap<>();
                 List<String> reportDistricts = new ArrayList<>();
                 for (Station station : reportStations) {
@@ -851,11 +966,13 @@ public class AdminServlet extends HttpServlet {
                     }
                 }
 
+                // Build booking lookup map for payment-to-booking join.
                 Map<Integer, Booking> bookingById = new HashMap<>();
                 for (Booking booking : reportBookings) {
                     bookingById.put(booking.getBookingId(), booking);
                 }
 
+                // Filter bookings by date range, district, and station.
                 List<Booking> reportFilteredBookings = new ArrayList<>();
                 for (Booking booking : reportBookings) {
                     LocalDate bookingDate = booking.getBookingDate() == null ? null : booking.getBookingDate().toLocalDateTime().toLocalDate();
@@ -869,6 +986,7 @@ public class AdminServlet extends HttpServlet {
                     reportFilteredBookings.add(booking);
                 }
 
+                // Filter payments to only those matching the filtered booking set.
                 Set<Integer> filteredBookingIds = new HashSet<>();
                 for (Booking booking : reportFilteredBookings) filteredBookingIds.add(booking.getBookingId());
 
@@ -890,6 +1008,7 @@ public class AdminServlet extends HttpServlet {
                     reportFilteredPayments.add(reportPayment);
                 }
 
+                // Compute summary KPIs: total bookings, revenue, per-status payment counts.
                 int totalBookings = reportFilteredBookings.size();
                 BigDecimal totalRevenue = BigDecimal.ZERO;
                 int paidPayments = 0;
@@ -911,6 +1030,7 @@ public class AdminServlet extends HttpServlet {
                     }
                 }
 
+                // Count active stations matching the selected filters.
                 int activeStations = 0;
                 for (Station station : reportStations) {
                     if (stationFilterId > 0 && station.getStationId() != stationFilterId) continue;
@@ -918,6 +1038,7 @@ public class AdminServlet extends HttpServlet {
                     if ("active".equalsIgnoreCase(v(station.getStatus()))) activeStations++;
                 }
 
+                // Query new user registrations within the selected date range.
                 List<LocalDate> registeredUserDates = new ArrayList<>();
                 try (Connection c = DBConnection.getConnection();
                      PreparedStatement ps = c.prepareStatement(
@@ -937,6 +1058,7 @@ public class AdminServlet extends HttpServlet {
                 }
                 int newUsers = registeredUserDates.size();
 
+                // Group booking counts by district, station, and manager for bar-chart data.
                 Map<String, Integer> districtBookingsMap = new HashMap<>();
                 Map<String, Integer> stationBookingsMap = new HashMap<>();
                 Map<String, Integer> managerBookingsMap = new HashMap<>();
@@ -952,6 +1074,7 @@ public class AdminServlet extends HttpServlet {
                     managerBookingsMap.put(managerName, managerBookingsMap.getOrDefault(managerName, 0) + 1);
                 }
 
+                // Compute per-station booking and revenue aggregates for the activity table.
                 Map<Integer, Integer> stationBookingsCountMap = new HashMap<>();
                 Map<Integer, BigDecimal> stationRevenueMap = new HashMap<>();
                 for (Booking booking : reportFilteredBookings) {
@@ -968,6 +1091,7 @@ public class AdminServlet extends HttpServlet {
                     stationRevenueMap.put(stationId, stationRevenueMap.getOrDefault(stationId, BigDecimal.ZERO).add(amount));
                 }
 
+                // Build sorted lists for district, station, and manager booking charts.
                 List<Map<String, Object>> bookingsByDistrict = new ArrayList<>();
                 for (Map.Entry<String, Integer> entry : districtBookingsMap.entrySet()) {
                     Map<String, Object> row = new HashMap<>();
@@ -995,12 +1119,14 @@ public class AdminServlet extends HttpServlet {
                 }
                 bookingsByManager.sort((a, b) -> Integer.compare((Integer) b.get("count"), (Integer) a.get("count")));
 
+                // Compute utilization percentage relative to the busiest station.
                 int maxStationBookings = 0;
                 for (Integer count : stationBookingsCountMap.values()) {
                     if (count > maxStationBookings) maxStationBookings = count;
                 }
                 if (maxStationBookings <= 0) maxStationBookings = 1;
 
+                // Build top-5 station activity rows sorted by booking volume.
                 List<Map<String, Object>> stationActivityRows = new ArrayList<>();
                 for (Station station : reportStations) {
                     int stationId = station.getStationId();
@@ -1025,6 +1151,7 @@ public class AdminServlet extends HttpServlet {
                 stationActivityRows.sort((a, b) -> Integer.compare((Integer) b.get("bookings"), (Integer) a.get("bookings")));
                 if (stationActivityRows.size() > 5) stationActivityRows = new ArrayList<>(stationActivityRows.subList(0, 5));
 
+                // Generate time-series trend data bucketed into up to 6 intervals for chart rendering.
                 List<String> paymentTrendLabels = new ArrayList<>();
                 List<Integer> paymentTrendRevenue = new ArrayList<>();
                 List<Integer> paymentTrendBookings = new ArrayList<>();
@@ -1072,6 +1199,7 @@ public class AdminServlet extends HttpServlet {
                     registrationValues.add(bucketRegistrationCount);
                 }
 
+                // Stream CSV export for analytics report if requested.
                 if ("csv".equalsIgnoreCase(n(r.getParameter("export")))) {
                     resp.setContentType("text/csv;charset=UTF-8");
                     resp.setHeader("Content-Disposition", "attachment; filename=reports-analytics.csv");
@@ -1123,11 +1251,45 @@ public class AdminServlet extends HttpServlet {
                 r.setAttribute("paymentTrendBookings", paymentTrendBookings);
                 f(r, resp, "admin/reports.jsp");
                 break;
+
             default:
                 resp.sendRedirect(r.getContextPath() + "/admin/dashboard");
         }
     }
 
+    /**
+     * Handles all HTTP POST requests for admin CRUD and status-change operations.
+     *
+     * <p>The action is determined by the {@code action} request parameter. Supported actions:</p>
+     * <ul>
+     *   <li>{@code saveUser}    — create or update a regular user account</li>
+     *   <li>{@code saveManager} — create or update a station manager account and optionally
+     *                             assign them to a station</li>
+     *   <li>{@code deleteUser}  — permanently delete a user by ID</li>
+     *   <li>{@code userStatus}  — change a user's active/inactive status</li>
+     *   <li>{@code saveStation} — create or update a charging station</li>
+     *   <li>{@code deleteStation} — permanently delete a station by ID</li>
+     *   <li>{@code saveSlot}    — create or update a charging slot</li>
+     *   <li>{@code deleteSlot}  — permanently delete a slot by ID</li>
+     *   <li>{@code slotStatus}  — change a single slot's availability status</li>
+     *   <li>{@code batchSlotStatus} — change availability status on multiple slots at once</li>
+     *   <li>{@code deleteBooking}   — cancel a booking by ID</li>
+     *   <li>{@code bookingStatus}   — update a booking's status</li>
+     *   <li>{@code paymentStatus}   — update a payment's status</li>
+     *   <li>{@code reviewStatus}    — toggle a review's visibility (visible/hidden)</li>
+     *   <li>{@code deleteReview}    — permanently delete a review by ID</li>
+     *   <li>{@code readMessage}     — mark a contact message as read</li>
+     *   <li>{@code deleteMessage}   — permanently delete a contact message by ID</li>
+     * </ul>
+     *
+     * <p>After each operation, the response is redirected to the appropriate listing page
+     * or to the {@code Referer} header URL.</p>
+     *
+     * @param r    the incoming {@link HttpServletRequest} containing form parameters
+     * @param resp the outgoing {@link HttpServletResponse} used for redirects
+     * @throws ServletException if a servlet-specific error occurs
+     * @throws IOException      if an I/O error occurs during redirect
+     */
     protected void doPost(HttpServletRequest r, HttpServletResponse resp) throws ServletException, IOException {
         String a = r.getParameter("action");
         if ("saveUser".equals(a) || "saveManager".equals(a)) {
@@ -1144,6 +1306,8 @@ public class AdminServlet extends HttpServlet {
             u.setStatus(r.getParameter("status"));
             UserDAO dao = new UserDAO();
             if ("saveManager".equals(a) && !stationIdParam.isBlank()) {
+                // For a manager with an assigned station: hash the password (or assign a default),
+                // register the manager, then link them to the station.
                 int stationId = Integer.parseInt(stationIdParam);
                 String rawPassword = n(r.getParameter("password"));
                 if (!rawPassword.isBlank()) {
@@ -1164,6 +1328,7 @@ public class AdminServlet extends HttpServlet {
                 return;
             } else {
                 if (u.getUserId() > 0) {
+                    // Update existing user; re-hash password only if a new one was provided.
                     String newPassword = n(r.getParameter("password"));
                     if (!newPassword.isBlank()) {
                         u.setPasswordHash(PasswordUtil.hashPassword(newPassword));
@@ -1224,6 +1389,7 @@ public class AdminServlet extends HttpServlet {
             new SlotDAO().updateStatus(Integer.parseInt(r.getParameter("slotId")), toDbSlotStatus(r.getParameter("status")));
             resp.sendRedirect(r.getHeader("Referer") != null ? r.getHeader("Referer") : (r.getContextPath() + "/admin/slots"));
         } else if ("batchSlotStatus".equals(a)) {
+            // Apply the chosen status to all slot IDs supplied in the multi-select parameter.
             String[] selected = r.getParameterValues("slotIds");
             String nextStatus = toDbSlotStatus(r.getParameter("status"));
             if (!nextStatus.isBlank() && selected != null && selected.length > 0) {
@@ -1262,18 +1428,45 @@ public class AdminServlet extends HttpServlet {
         }
     }
 
+    /**
+     * Forwards the request to the specified JSP view under {@code /WEB-INF/views/}.
+     *
+     * @param r    the current {@link HttpServletRequest}
+     * @param resp the current {@link HttpServletResponse}
+     * @param page relative path to the JSP (e.g. {@code "admin/dashboard.jsp"})
+     * @throws ServletException if the request dispatcher cannot forward the request
+     * @throws IOException      if an I/O error occurs during forwarding
+     */
     private void f(HttpServletRequest r, HttpServletResponse resp, String page) throws ServletException, IOException {
         r.getRequestDispatcher("/WEB-INF/views/" + page).forward(r, resp);
     }
 
+    /**
+     * Returns a trimmed, non-null version of the given string.
+     *
+     * @param value the raw string value (may be {@code null})
+     * @return trimmed value, or an empty string if {@code value} is {@code null}
+     */
     private String n(String value) {
         return value == null ? "" : value.trim();
     }
 
+    /**
+     * Returns the string as-is, substituting an empty string for {@code null}.
+     *
+     * @param value the raw string value (may be {@code null})
+     * @return the original value, or {@code ""} if {@code null}
+     */
     private String v(String value) {
         return value == null ? "" : value;
     }
 
+    /**
+     * Parses an ISO-8601 date string ({@code yyyy-MM-dd}) into a {@link LocalDate}.
+     *
+     * @param value the date string to parse (may be {@code null} or blank)
+     * @return the parsed {@link LocalDate}, or {@code null} if parsing fails or input is blank
+     */
     private LocalDate p(String value) {
         if (value == null || value.trim().isEmpty()) return null;
         try {
@@ -1283,6 +1476,14 @@ public class AdminServlet extends HttpServlet {
         }
     }
 
+    /**
+     * Checks whether a given date falls within the inclusive range [{@code start}, {@code end}].
+     *
+     * @param date  the date to test (may be {@code null})
+     * @param start the range start (inclusive; {@code null} means no lower bound)
+     * @param end   the range end (inclusive; {@code null} means no upper bound)
+     * @return {@code true} if {@code date} is non-null and within the specified range
+     */
     private boolean m(LocalDate date, LocalDate start, LocalDate end) {
         if (date == null) return false;
         if (start != null && date.isBefore(start)) return false;
@@ -1290,6 +1491,20 @@ public class AdminServlet extends HttpServlet {
         return true;
     }
 
+    /**
+     * Normalizes a UI-facing slot status label to its canonical database value.
+     *
+     * <p>Mapping rules:</p>
+     * <ul>
+     *   <li>{@code "maintenance"}, {@code "offline"}, {@code "inactive"} → {@code "inactive"}</li>
+     *   <li>{@code "booked"}, {@code "occupied"} → {@code "booked"}</li>
+     *   <li>{@code "available"} → {@code "available"}</li>
+     *   <li>Anything else → returned as-is (lowercased and trimmed)</li>
+     * </ul>
+     *
+     * @param status the incoming status string (may be {@code null} or blank)
+     * @return the normalized database status string
+     */
     private String toDbSlotStatus(String status) {
         String normalized = n(status).toLowerCase(Locale.ENGLISH);
         switch (normalized) {
@@ -1307,6 +1522,13 @@ public class AdminServlet extends HttpServlet {
         }
     }
 
+    /**
+     * Parses a string to an integer, returning a fallback value if parsing fails or input is blank.
+     *
+     * @param value    the string to parse (may be {@code null} or blank)
+     * @param fallback the value to return if parsing is not possible
+     * @return the parsed integer, or {@code fallback}
+     */
     private int pi(String value, int fallback) {
         if (value == null || value.trim().isEmpty()) return fallback;
         try {
@@ -1316,6 +1538,13 @@ public class AdminServlet extends HttpServlet {
         }
     }
 
+    /**
+     * Wraps a value in double quotes for safe inclusion in a CSV field, escaping any
+     * internal double quotes by doubling them ({@code "} → {@code ""}).
+     *
+     * @param value the value to wrap (any object; {@code null} is rendered as an empty quoted field)
+     * @return a CSV-safe quoted string, e.g. {@code "some, value"} or {@code "he said ""hello"""}
+     */
     private String csv(Object value) {
         if (value == null) return "\"\"";
         String text = String.valueOf(value).replace("\"", "\"\"");
