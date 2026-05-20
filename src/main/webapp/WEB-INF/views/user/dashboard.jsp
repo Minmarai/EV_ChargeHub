@@ -1,7 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
-<%-- Author: Kirti Dahal --%>
+<%-- Author: Kirti Dahal IIC Java Hackerzz --%>
 <html>
 <head>
   <title>User Dashboard</title>
