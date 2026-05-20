@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.sql.Time;
 
 /**
- * Author: Imtiyaz Ansari
+ * Author: Imtiyaz Ansari IIC
  */
 public class Station {
     private int stationId, districtId, managerId, totalPorts;
