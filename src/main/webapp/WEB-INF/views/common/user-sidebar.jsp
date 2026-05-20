@@ -16,7 +16,7 @@
     <a class="${activePage == 'profile' ? 'active' : ''}" href="${pageContext.request.contextPath}/user/profile"><i class="fa-regular fa-user"></i><span>Profile</span></a>
   </nav>
 
-  <a class="user-side-logout" href="${pageContext.request.contextPath}/logout">Logout</a>
+  <a class="user-side-logout" href="${pageContext.request.contextPath}/logout"><i class="fa-solid fa-right-from-bracket"></i><span>Log Out</span></a>
 </div>
 
 <button type="button" class="mobile-nav-toggle user-mobile-toggle" aria-label="Toggle navigation" aria-controls="user-sidebar-nav" aria-expanded="false">
